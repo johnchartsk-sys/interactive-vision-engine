@@ -11,5 +11,6 @@
 
 - Keep the command-center experience on the client-only home route; its WebGL viewer requires browser rendering.
 - Use dedicated infrastructure panel and graphics components with global semantic design tokens; this keeps repeated sector controls consistent.
-- Use CDN asset pointers for reference-image crops and the CC0 Poly Haven marble_bust_01 model; media stays out of source control.
+- Use CDN asset pointers for reference-image crops; media stays out of source control.
+- Render NIA using the original portrait texture on a curved 3D relief with bounded orbit controls; this preserves its exact reference identity without inventing unseen facial views.
 - Keep command-center actions as explicit demonstration interactions until real services are connected; never imply live infrastructure data.
