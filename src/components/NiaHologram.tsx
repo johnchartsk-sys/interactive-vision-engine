@@ -10,7 +10,7 @@ function NiaPortrait({ wireframe, cyan }: { wireframe: boolean; cyan: string }) 
  // frontal image cannot define an accurate unseen profile or back of the head.
  const geometry = useMemo(() => {
   const mesh = new THREE.PlaneGeometry(3.76, 3.04, 96, 80);
-  const positions = mesh.attributes.position;
+  const positions = mesh.getAttribute('position');
   for (let i = 0; i < positions.count; i++) {
    const x = positions.getX(i), y = positions.getY(i);
    const head = Math.exp(-((x*x)/.34 + ((y-.43)*(y-.43))/.7));
