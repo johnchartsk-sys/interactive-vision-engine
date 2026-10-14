@@ -24,7 +24,7 @@ async function serpSearch(query: string, engine: string, key: string) {
   url.searchParams.set("api_key", key);
   const res = await fetch(url);
   if (!res.ok) return { error: `Search failed (${res.status})` };
-  const j = (await res.json()) as Record<string, any>;
+  const j = (await res.json()) as any;
   const pick = (arr: any[] | undefined, n = 5) => (arr ?? []).slice(0, n);
   return {
     answer: j.answer_box?.answer ?? j.answer_box?.snippet ?? null,
@@ -73,8 +73,8 @@ export const askNia = createServerFn({ method: "POST" })
       const parts = j.candidates?.[0]?.content?.parts ?? [];
       const call = parts.find((p) => p.functionCall)?.functionCall;
       if (call && serp && step < 2) {
-        const q = String(call.args.query ?? "");
-        const engine = String(call.args.engine ?? "google");
+        const q = String(call.args["query"] ?? "");
+        const engine = String(call.args["engine"] ?? "google");
         sources.push(`${engine.replace("google_", "")}: ${q}`);
         const result = await serpSearch(q, engine, serp).catch(() => ({ error: "Search unavailable" }));
         contents.push({ role: "model", parts });
