@@ -23,7 +23,7 @@ const sectors:Sector[]=[
  {name:'CITY & ROADS',icon:Building2,image:city.url,location:'Windhoek urban infrastructure',items:[{name:'Roads & Bridges',icon:GitBranch},{name:'Water Utilities',icon:Droplets},{name:'Electricity Utilities',icon:Zap},{name:'Urban Infrastructure',icon:Building2}],metric:'Network Status',value:'Operational'},
  {name:'NAMHEALTH',icon:Plus,image:health.url,location:'National healthcare network',items:[{name:'Hospitals',icon:Hospital},{name:'Clinics',icon:Cross},{name:'Medical Equipment',icon:HeartPulse},{name:'Health Facilities',icon:Building2}],metric:'Health Facilities',value:'Connected'},
 ];
-const initialEvents=[['10:42','Sensor alert - High pressure (Water)'],['09:16','Maintenance task created'],['08:30','Asset updated - Pump 12'],['07:12','Data sync - TransNamib'],['06:51','Report generated - Energy'],['05:33','User action - Recommendation']];
+const initialEvents: [string,string][]=[['10:42','Sensor alert - High pressure (Water)'],['09:16','Maintenance task created'],['08:30','Asset updated - Pump 12'],['07:12','Data sync - TransNamib'],['06:51','Report generated - Energy'],['05:33','User action - Recommendation']];
 function ToolHeading({icon:Icon,title,onClick}:{icon:LucideIcon;title:string;onClick:()=>void}){return <div className="panel-heading"><Button variant="sector" onClick={onClick}><Icon/>{title}</Button></div>}
 function CommandCenter(){
  const [detail,setDetail]=useState<{name:string;category:string}|null>(null);
@@ -33,8 +33,8 @@ function CommandCenter(){
  const [events,setEvents]=useState(initialEvents);const [twin,setTwin]=useState('3D Twin');
  const open=(name:string,category='National infrastructure intelligence')=>{setDetail({name,category});setFeedback('');setNotes('')};
  useEffect(()=>{if(!detail)return;const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setDetail(null)};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[detail]);
- useEffect(()=>{if(simState!=='running')return;const timer=setTimeout(()=>{setSimState('complete');setEvents(prev=>[['Now',`Simulation complete - ${scenario}`],...prev].slice(0,6))},1800);return()=>clearTimeout(timer)},[simState,scenario]);
- const logAction=(message:string)=>{setFeedback(message);setEvents(prev=>[['Now',message],...prev].slice(0,6))};
+ useEffect(()=>{if(simState!=='running')return;const timer=setTimeout(()=>{setSimState('complete');setEvents(prev=>{const next: [string,string][]=[['Now',`Simulation complete - ${scenario}`],...prev];return next.slice(0,6)})},1800);return()=>clearTimeout(timer)},[simState,scenario]);
+ const logAction=(message:string)=>{setFeedback(message);setEvents(prev=>{const next: [string,string][]=[['Now',message],...prev];return next.slice(0,6)})};
  return <main className="command-center">
  <div className="topline"><span><ShieldCheck size={12} className="inline mr-1"/> NATIONAL INFRASTRUCTURE COMMAND CENTER</span><div className="top-status"><span><span className="status-dot"/> NIA SYSTEM READY</span><span>WINDHOEK · NAMIBIA</span><span className="demo-tag">DEMO</span><Button variant="console" title="System settings" aria-label="System settings" onClick={()=>open('System settings')}><Settings size={13}/></Button></div></div>
  <div className="main-grid">
