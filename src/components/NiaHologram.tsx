@@ -1,4 +1,4 @@
-import { Suspense, useMemo } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls, Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,7 +18,9 @@ function NiaBust({ wireframe, cyan, deep }: { wireframe: boolean; cyan: string; 
  return <primitive object={model} />;
 }
 export function NiaHologram({ autoRotate, wireframe, resetKey }: { autoRotate: boolean; wireframe: boolean; resetKey: number }) {
- const palette=useMemo(()=>{if(typeof document==='undefined')return {cyan:'cyan',deep:'teal',silver:'silver'};const style=getComputedStyle(document.documentElement);const color=(name:string)=>{const c=document.createElement('canvas').getContext('2d');if(!c)return 'cyan';c.fillStyle=style.getPropertyValue(name).trim();return c.fillStyle;};return {cyan:color('--primary'),deep:color('--secondary'),silver:color('--silver')};},[]);
+ const [palette,setPalette]=useState<{cyan:string;deep:string;silver:string}|null>(null);
+ useEffect(()=>{const style=getComputedStyle(document.documentElement);const color=(name:string)=>{const c=document.createElement('canvas').getContext('2d');if(!c)return 'cyan';c.fillStyle=style.getPropertyValue(name).trim();c.fillRect(0,0,1,1);const pixel=c.getImageData(0,0,1,1).data;return `rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;};setPalette({cyan:color('--primary'),deep:color('--secondary'),silver:color('--silver')});},[]);
+ if(!palette)return null;
  return <div className="nia-canvas" aria-label="Rotatable 3D NIA hologram"><Canvas key={resetKey} dpr={[1,1.5]} camera={{position:[0,.65,6.7],fov:36}} gl={{alpha:true,antialias:true}}>
  <ambientLight intensity={1.1}/><directionalLight position={[3,4,5]} intensity={3} color={palette.cyan}/><directionalLight position={[-3,2,3]} intensity={1.6}/><pointLight position={[0,0,-2]} intensity={9} color={palette.cyan}/>
  <Environment resolution={128}><Lightformer intensity={2} position={[0,4,3]} scale={[5,5,1]}/><Lightformer intensity={3} color={palette.cyan} position={[-4,1,1]} rotation-y={Math.PI/2} scale={[5,4,1]}/></Environment>
