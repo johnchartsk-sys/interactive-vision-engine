@@ -1,24 +1,56 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
+import { Activity, Anchor, ArrowRight, Box, BrainCircuit, Building2, Cable, Check, CheckCircle2, ClipboardList, Cross, Droplets, Gauge, GitBranch, Hospital, Map, Network, Pause, Play, Plus, Radio, RotateCcw, Settings, ShieldCheck, Thermometer, TrainFront, Truck, Waves, Wrench, X, Zap, Bell, Lightbulb, UserRound, Pipette, CircleDot, HeartPulse, FlaskConical, type LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { InfrastructurePanel, type Sector } from '@/components/InfrastructurePanel';
+import { Sparkline, NamibiaNetwork } from '@/components/CommandGraphics';
+import { NiaHologram } from '@/components/NiaHologram';
+import water from '@/assets/water.jpg.asset.json';
+import rail from '@/assets/rail.jpg.asset.json';
+import ports from '@/assets/ports.jpg.asset.json';
+import energy from '@/assets/energy.jpg.asset.json';
+import city from '@/assets/city.jpg.asset.json';
+import health from '@/assets/health.jpg.asset.json';
+import physical from '@/assets/physical.jpg.asset.json';
+import map from '@/assets/map.jpg.asset.json';
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
-export const Route = createFileRoute("/")({
-  component: Index,
-});
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
+export const Route=createFileRoute('/')({ssr:false,head:()=>({meta:[{title:'NamTwin-Go NIA | National Infrastructure Command Center'},{name:'description',content:'Explore Namibia’s water, rail, ports, energy, cities and healthcare infrastructure with the interactive NIA command center.'},{property:'og:title',content:'NamTwin-Go NIA | National Infrastructure Command Center'},{property:'og:description',content:'National infrastructure intelligence, digital twins and scenario simulation for Namibia.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}),component:CommandCenter});
+const sectors:Sector[]=[
+ {name:'WATER',icon:Droplets,image:water.url,location:'National water infrastructure',items:[{name:'Reservoirs',icon:Waves},{name:'Pumps',icon:Network},{name:'Pipelines',icon:GitBranch},{name:'Boreholes',icon:Pipette},{name:'Ohangwena Aquifer',icon:Map}],metric:'Pressure',value:'3.2 bar',secondary:'482 L/s'},
+ {name:'RAIL',icon:TrainFront,image:rail.url,location:'TransNamib rail network',items:[{name:'TransNamib',icon:TrainFront},{name:'Locomotives',icon:TrainFront},{name:'Rolling Stock',icon:Truck},{name:'Track Network',icon:GitBranch}],metric:'Fleet Health',value:'87%'},
+ {name:'PORTS',icon:Anchor,image:ports.url,location:'Walvis Bay port',items:[{name:'Walvis Bay Port',icon:Anchor},{name:'Lüderitz Port',icon:Anchor}],metric:'Cargo Throughput',value:'72%'},
+ {name:'ENERGY',icon:Zap,image:energy.url,location:'National power grid',items:[{name:'Power Stations',icon:Building2},{name:'Grid Lines',icon:Cable},{name:'Substations',icon:Box}],metric:'Generation',value:'734 MW'},
+ {name:'CITY & ROADS',icon:Building2,image:city.url,location:'Windhoek urban infrastructure',items:[{name:'Roads & Bridges',icon:GitBranch},{name:'Water Utilities',icon:Droplets},{name:'Electricity Utilities',icon:Zap},{name:'Urban Infrastructure',icon:Building2}],metric:'Network Status',value:'Operational'},
+ {name:'NAMHEALTH',icon:Plus,image:health.url,location:'National healthcare network',items:[{name:'Hospitals',icon:Hospital},{name:'Clinics',icon:Cross},{name:'Medical Equipment',icon:HeartPulse},{name:'Health Facilities',icon:Building2}],metric:'Health Facilities',value:'Connected'},
+];
+const initialEvents=[['10:42','Sensor alert - High pressure (Water)'],['09:16','Maintenance task created'],['08:30','Asset updated - Pump 12'],['07:12','Data sync - TransNamib'],['06:51','Report generated - Energy'],['05:33','User action - Recommendation']];
+function ToolHeading({icon:Icon,title,onClick}:{icon:LucideIcon;title:string;onClick:()=>void}){return <div className="panel-heading"><Button variant="sector" onClick={onClick}><Icon/>{title}</Button></div>}
+function CommandCenter(){
+ const [detail,setDetail]=useState<{name:string;category:string}|null>(null);
+ const [feedback,setFeedback]=useState('');const [notes,setNotes]=useState('');
+ const [autoRotate,setAutoRotate]=useState(false);const [wireframe,setWireframe]=useState(false);const [resetKey,setResetKey]=useState(0);
+ const [scenario,setScenario]=useState('Peak Demand + Power Outage');const [simState,setSimState]=useState<'idle'|'running'|'complete'>('idle');
+ const [events,setEvents]=useState(initialEvents);const [twin,setTwin]=useState('3D Twin');
+ const open=(name:string,category='National infrastructure intelligence')=>{setDetail({name,category});setFeedback('');setNotes('')};
+ useEffect(()=>{if(!detail)return;const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setDetail(null)};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[detail]);
+ useEffect(()=>{if(simState!=='running')return;const timer=setTimeout(()=>{setSimState('complete');setEvents(prev=>[['Now',`Simulation complete - ${scenario}`],...prev].slice(0,6))},1800);return()=>clearTimeout(timer)},[simState,scenario]);
+ const logAction=(message:string)=>{setFeedback(message);setEvents(prev=>[['Now',message],...prev].slice(0,6))};
+ return <main className="command-center">
+ <div className="topline"><span><ShieldCheck size={12} className="inline mr-1"/> NATIONAL INFRASTRUCTURE COMMAND CENTER</span><div className="top-status"><span><span className="status-dot"/> NIA SYSTEM READY</span><span>WINDHOEK · NAMIBIA</span><span className="demo-tag">DEMO</span><Button variant="console" title="System settings" aria-label="System settings" onClick={()=>open('System settings')}><Settings size={13}/></Button></div></div>
+ <div className="main-grid">
+ <div className="sector-stack">{sectors.slice(0,3).map(sector=><InfrastructurePanel key={sector.name} sector={sector} onOpen={open}/>)}</div>
+ <section className="nia-column" aria-label="NIA intelligence assistant"><header className="brand"><h1>NAMTWIN-GO</h1><h2>NIA</h2><p>NATIONAL INFRASTRUCTURE INTELLIGENCE</p></header><div className="nia-stage"><NamibiaNetwork/><NiaHologram autoRotate={autoRotate} wireframe={wireframe} resetKey={resetKey}/>{[Droplets,Zap,TrainFront,Anchor,Building2,Plus].map((Icon,i)=><Button key={i} variant="console" className="nia-orbit-button" title={sectors[i]?.name} aria-label={`NIA ${sectors[i]?.name} intelligence`} onClick={()=>open(`${sectors[i]?.name} intelligence`,'NIA sector analysis')}><Icon/></Button>)}<div className="nia-identity"><strong>NIA · NATIONAL INTELLIGENCE ASSISTANT</strong><p><span className="status-dot"/>ALL SECTORS CONNECTED</p></div></div><div className="nia-toolbar"><Button variant="console" title="Reset NIA view" onClick={()=>setResetKey(k=>k+1)}><RotateCcw/>Reset view</Button><Button variant="console" data-active={autoRotate} onClick={()=>setAutoRotate(v=>!v)}>{autoRotate?<Pause/>:<Play/>}{autoRotate?'Pause rotation':'Rotate'}</Button><Button variant="console" data-active={wireframe} onClick={()=>setWireframe(v=>!v)}><Box/>{wireframe?'Solid':'Wireframe'}</Button><Button variant="console" title="Open NIA" onClick={()=>open('NIA','Intelligence assistant')}><Radio/>NIA</Button></div></section>
+ <div className="sector-stack">{sectors.slice(3).map(sector=><InfrastructurePanel key={sector.name} sector={sector} onOpen={open}/>)}</div>
+ </div>
+ <div className="tools-grid">
+ <section className="tool-panel"><ToolHeading icon={Box} title="3D DIGITAL TWIN" onClick={()=>open('3D Digital Twin')}/><div className="twin-content"><Button variant="console" className="photo-button" aria-label="Inspect physical asset" onClick={()=>open('Physical Asset','Pipeline digital twin')}><img src={physical.url} alt="Water pipeline physical asset"/></Button><Button variant="console" className="twin-blueprint" aria-label="Inspect 3D twin" onClick={()=>open('Pipeline 3D Twin','Digital twin')}><Network/></Button></div><div className="twin-labels">{['Physical Asset','3D Twin'].map(label=><Button key={label} variant="console" data-active={twin===label} onClick={()=>{setTwin(label);open(label,'Pipeline digital twin')}}>{label}</Button>)}</div></section>
+ <section className="tool-panel"><ToolHeading icon={Activity} title="LIVE TELEMETRY" onClick={()=>open('Live Telemetry')}/>{[{name:'Temperature',value:'42.3 °C',icon:Thermometer,tone:''},{name:'Pressure',value:'3.2 bar',icon:Gauge,tone:'cyan'},{name:'Flow',value:'482 L/s',icon:Waves,tone:''},{name:'Vibration',value:'0.8 mm/s',icon:Activity,tone:'amber'}].map((item,i)=><Button variant="console" className="telemetry-row w-full" key={item.name} onClick={()=>open(item.name,'Live telemetry · Pump 12')}><item.icon/><span>{item.name}<strong>{item.value}</strong></span><Sparkline tone={item.tone} seed={i+1}/></Button>)}</section>
+ <section className="tool-panel"><ToolHeading icon={Settings} title="PREDICTIVE MAINTENANCE" onClick={()=>open('Predictive Maintenance')}/><div className="maintenance-overview"><Button variant="console" className="score-ring" aria-label="Condition score 86 percent" onClick={()=>open('Condition Score','Predictive maintenance')}><span>Condition Score</span><strong>86%</strong></Button><Button variant="console" className="life-chart" onClick={()=>open('Remaining Useful Life','Pump 12 prediction')}><span>Remaining Useful Life<svg viewBox="0 0 150 60"><path className="gridline" d="M0 12H150M0 30H150M0 48H150"/><path d="M3 6C30 6 47 24 70 30S111 46 148 47"/></svg><span className="life-labels"><span>Now</span><span>6m</span><span>12m</span><span>24m</span></span></span></Button></div><Button variant="console" className="notice warning" onClick={()=>open('Anomaly Detected','Leakage probability ↑ 12%')}><Bell/>Anomaly Detected <span className="ml-auto">Leakage ↑ 12%</span></Button><Button variant="console" className="notice good" onClick={()=>open('Maintenance Recommended','Within 45 days')}><Wrench/>Maintenance Recommended <span className="ml-auto">45 days</span></Button></section>
+ <section className="tool-panel"><ToolHeading icon={Network} title="WHAT-IF SIMULATION" onClick={()=>open('What-if Simulation')}/><select aria-label="Simulation scenario" className="scenario-select" value={scenario} onChange={e=>{setScenario(e.target.value);setSimState('idle')}}>{['Peak Demand + Power Outage','Water Supply Disruption','Rail Network Interruption','Port Capacity Surge'].map(s=><option key={s} value={s}>Scenario: {s}</option>)}</select><div className="simulation-content"><Button variant="console" className="p-0" aria-label="Simulation impact map" onClick={()=>open('Simulation impact map',scenario)}><img src={map.url} alt="Namibia scenario impact map"/></Button><div className="impact-list"><span>{simState==='complete'?'Projected impact':'Impact'}</span>{[{name:'Water Supply',icon:Droplets,value:'18%'},{name:'Power Supply',icon:Zap,value:'12%'},{name:'Transport',icon:TrainFront,value:'8%'},{name:'Healthcare',icon:HeartPulse,value:'5%'}].map(item=><Button variant="console" key={item.name} onClick={()=>open(`${item.name} impact`,scenario)}><item.icon/>{item.name}<b>↓ {item.value}</b></Button>)}</div></div><Button variant="action" disabled={simState==='running'} onClick={()=>setSimState('running')}>{simState==='complete'?<Check/>:<Play/>}{simState==='running'?'Simulating…':simState==='complete'?'Complete · Run Again':'Run Simulation'}</Button></section>
+ <section className="tool-panel"><ToolHeading icon={ClipboardList} title="AUDIT TRAIL / EVENT LOG" onClick={()=>open('Audit Trail / Event Log')}/>{events.map(([time,event],i)=><Button variant="console" className="event-row" key={`${event}-${i}`} onClick={()=>open(event,'Audit trail')}><span className="event-time">{time}</span><span className="event-dot"/><span>{event}</span></Button>)}</section>
+ </div>
+ <nav className="workflow" aria-label="Intelligence workflow">{[{title:'DATA & ASSETS',sub:'Physical + Spatial + IoT',icon:Play},{title:'ANALYZE & PREDICT',sub:'AI + Machine Learning',icon:BrainCircuit},{title:'SIMULATE',sub:'What-if Scenarios',icon:FlaskConical},{title:'RECOMMEND',sub:'Insights & Actions',icon:Lightbulb},{title:'HUMAN DECISION',sub:'Final Authority',icon:UserRound}].map((step,i)=><div className="contents" key={step.title}><Button variant="console" className={`workflow-button ${i===4?'final-step':''}`} onClick={()=>open(step.title,step.sub)}><step.icon/><span>{step.title}<small>{step.sub}</small></span></Button>{i<4&&<ArrowRight className="workflow-arrow"/>}</div>)}</nav>
+ <div className="footer-line">NAMTWIN-GO · SOVEREIGN INFRASTRUCTURE INTELLIGENCE · REPUBLIC OF NAMIBIA</div>
+ {detail&&<div className="modal-backdrop" onClick={()=>setDetail(null)}><section role="dialog" aria-modal="true" aria-labelledby="detail-title" className="detail-dialog" onClick={e=>e.stopPropagation()}><div className="detail-eyebrow">NAMTWIN-GO / {detail.category.toUpperCase()}</div><div className="dialog-top"><h2 id="detail-title">{detail.name}</h2><Button variant="console" autoFocus aria-label="Close details" onClick={()=>setDetail(null)}><X/></Button></div><p>{detail.name==='NIA'?'NIA is ready. National infrastructure intelligence is standing by.':`Selected: ${detail.name}. This command-center preview uses demonstration data; no live infrastructure service is connected.`}</p><div className="detail-data"><span><CircleDot className="inline mr-2" size={13}/> DEMONSTRATION MODE</span><strong>Ready for review</strong></div>{detail.name==='HUMAN DECISION'&&<><label htmlFor="decision-notes">Decision notes</label><textarea id="decision-notes" value={notes} onChange={e=>setNotes(e.target.value)} placeholder="Add your decision…"/></>}<div className="dialog-actions"><Button variant="action" onClick={()=>logAction(detail.name==='HUMAN DECISION'?`Decision approved${notes?` — ${notes}`:''}`:`${detail.name} acknowledged`)}><CheckCircle2/>{detail.name==='HUMAN DECISION'?'Approve decision':'Acknowledge'}</Button><Button variant="console" onClick={()=>setDetail(null)}>Close</Button></div>{feedback&&<div role="status" className="feedback"><CheckCircle2 size={13} className="inline mr-1"/>{feedback}</div>}</section></div>}
+ </main>
 }
