@@ -1,4 +1,4 @@
 # Roadmap
-- [ ] Recreate every reference section with clickable controls.
-- [ ] Add rotatable 3D NIA.
-- [ ] Verify interactions and desktop/mobile rendering.
+- [x] Recreate every reference section with clickable controls.
+- [x] Add rotatable 3D NIA.
+- [x] Verify interactions and desktop/mobile rendering.
