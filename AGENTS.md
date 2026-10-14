@@ -13,4 +13,5 @@
 - Use dedicated infrastructure panel and graphics components with global semantic design tokens; this keeps repeated sector controls consistent.
 - Use CDN asset pointers for reference-image crops; media stays out of source control.
 - Render NIA using the original portrait texture on a curved 3D relief with bounded orbit controls; this preserves its exact reference identity without inventing unseen facial views.
+- Create intrinsic Three.js scene elements with React.createElement rather than JSX; preview source-selection attributes are DOM-only and crash R3F property updates.
 - Keep command-center actions as explicit demonstration interactions until real services are connected; never imply live infrastructure data.
