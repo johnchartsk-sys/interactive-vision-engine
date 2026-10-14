@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { Environment, Lightformer, OrbitControls, Html, useGLTF } from '@react-three/drei';
+import { Environment, Lightformer, OrbitControls, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import niaAsset from '@/assets/nia.glb.asset.json';
 
@@ -24,7 +24,7 @@ export function NiaHologram({ autoRotate, wireframe, resetKey }: { autoRotate: b
  return <div className="nia-canvas" aria-label="Rotatable 3D NIA hologram"><Canvas key={resetKey} dpr={[1,1.5]} camera={{position:[0,.65,6.7],fov:36}} gl={{alpha:true,antialias:true}}>
  <ambientLight intensity={1.1}/><directionalLight position={[3,4,5]} intensity={3} color={palette.cyan}/><directionalLight position={[-3,2,3]} intensity={1.6}/><pointLight position={[0,0,-2]} intensity={9} color={palette.cyan}/>
  <Environment resolution={128}><Lightformer intensity={2} position={[0,4,3]} scale={[5,5,1]}/><Lightformer intensity={3} color={palette.cyan} position={[-4,1,1]} rotation-y={Math.PI/2} scale={[5,4,1]}/></Environment>
- <Suspense fallback={<Html center><span className="detail-eyebrow">INITIALIZING NIA…</span></Html>}><NiaBust wireframe={wireframe} cyan={palette.cyan} deep={palette.deep}/></Suspense>
+ <Suspense fallback={null}><NiaBust wireframe={wireframe} cyan={palette.cyan} deep={palette.deep}/></Suspense>
  <group position={[0,-1.08,0]}>
  <mesh><cylinderGeometry args={[1.48,1.55,.15,64]}/><meshStandardMaterial color={palette.deep} metalness={.8} roughness={.2}/></mesh>
  {[1.4,1.15,.85,.55].map((radius,i)=><mesh key={radius} rotation-x={Math.PI/2} position-y={.09+i*.002}><torusGeometry args={[radius,.015,8,80]}/><meshBasicMaterial color={palette.cyan}/></mesh>)}
