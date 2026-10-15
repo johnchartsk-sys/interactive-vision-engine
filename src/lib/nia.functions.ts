@@ -67,10 +67,11 @@ export const askNia = createServerFn({ method: "POST" })
         if (res.status !== 503) break;
         await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
       }
-      if (!res!.ok) {
-        console.error("Gemini error", res!.status, (await res!.text()).slice(0, 500));
-        const msg = res!.status === 429 || res!.status === 503 ? "NIA is in high demand right now. Please try again in a moment."
-          : res!.status === 400 || res!.status === 401 || res!.status === 403 ? "NIA's Gemini key was rejected. Please check the key."
+      if (!res || !res.ok) {
+        const status = res?.status ?? 0;
+        console.error("Gemini error", status, res ? (await res.text()).slice(0, 500) : "no response");
+        const msg = status === 429 || status === 503 ? "NIA is in high demand right now. Please try again in a moment."
+          : status === 400 || status === 401 || status === 403 ? "NIA's Gemini key was rejected. Please check the key."
           : "NIA's brain is temporarily unavailable.";
         return { reply: "", error: msg };
       }
