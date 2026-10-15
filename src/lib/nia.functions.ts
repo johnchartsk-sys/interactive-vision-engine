@@ -57,7 +57,7 @@ export const askNia = createServerFn({ method: "POST" })
     });
 
     for (let step = 0; step < 3; step++) {
-      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": gemini },
         body: JSON.stringify(body()),
