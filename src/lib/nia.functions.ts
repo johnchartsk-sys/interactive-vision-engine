@@ -57,15 +57,20 @@ export const askNia = createServerFn({ method: "POST" })
     });
 
     for (let step = 0; step < 3; step++) {
-      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
-        method: "POST",
-        headers: { "content-type": "application/json", "x-goog-api-key": gemini },
-        body: JSON.stringify(body()),
-      });
-      if (!res.ok) {
-        console.error("Gemini error", res.status, (await res.text()).slice(0, 500));
-        const msg = res.status === 429 ? "NIA is receiving too many requests. Please wait a moment."
-          : res.status === 400 || res.status === 401 || res.status === 403 ? "NIA's Gemini key was rejected. Please check the key."
+      let res: Response | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-goog-api-key": gemini },
+          body: JSON.stringify(body()),
+        });
+        if (res.status !== 503) break;
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+      }
+      if (!res!.ok) {
+        console.error("Gemini error", res!.status, (await res!.text()).slice(0, 500));
+        const msg = res!.status === 429 || res!.status === 503 ? "NIA is in high demand right now. Please try again in a moment."
+          : res!.status === 400 || res!.status === 401 || res!.status === 403 ? "NIA's Gemini key was rejected. Please check the key."
           : "NIA's brain is temporarily unavailable.";
         return { reply: "", error: msg };
       }
