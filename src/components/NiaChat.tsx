@@ -17,7 +17,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
   const endRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<any>(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, busy]);
+  useEffect(() => { endRef.current?.scrollIntoView?.({ behavior: "smooth" }); }, [messages, busy]);
   useEffect(() => () => { window.speechSynthesis?.cancel(); recRef.current?.stop?.(); }, []);
 
   const speak = (t: string) => {
