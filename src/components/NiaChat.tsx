@@ -4,7 +4,7 @@ import { Lightbulb, LayoutDashboard, Mic, MicOff, Radio, Send, Volume2, VolumeX,
 import { Button } from "@/components/ui/button";
 import { askNia } from "@/lib/nia.functions";
 
-type Msg = { role: "user" | "assistant"; text: string; sources?: string[] };
+type Msg = { role: "user" | "assistant"; text: string; sources?: string[] | undefined };
 
 export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: string; onClose: () => void; onRecommendation: (t: string) => void }) {
   const ask = useServerFn(askNia);
@@ -17,7 +17,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
   const endRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<any>(null);
 
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [messages, busy]);
+  useEffect(() => { endRef.current?.scrollIntoView?.({ behavior: "smooth" }); }, [messages, busy]);
   useEffect(() => () => { window.speechSynthesis?.cancel(); recRef.current?.stop?.(); }, []);
 
   const speak = (t: string) => {
