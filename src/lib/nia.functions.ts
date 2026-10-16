@@ -6,6 +6,9 @@ const Input = z.object({
   dashboard: z.string().max(6000),
 });
 
+const MODEL = "google/gemini-3.8-flash";
+const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 const SYSTEM = `You are NIA, the National Infrastructure Intelligence Assistant of NamTwin-Go for the Republic of Namibia — a calm, confident, Jarvis-like AI.
 Abilities: answer questions, explain what is on the command-center dashboard, and recommend actions.
 Rules:
@@ -14,13 +17,16 @@ Rules:
 - Recommendations are advisory only: end any recommendation with "Final authority rests with the human decision-maker."
 - Keep replies concise (under 160 words), suitable to be read aloud. Plain text, no markdown tables.`;
 
-type Part = { text?: string; functionCall?: { name: string; args: Record<string, unknown> }; functionResponse?: unknown };
-type Content = { role: "user" | "model" | "function"; parts: Part[] };
+type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+type Msg =
+  | { role: "system" | "user"; content: string }
+  | { role: "assistant"; content: string | null; tool_calls?: ToolCall[] }
+  | { role: "tool"; tool_call_id: string; content: string };
 
 async function serpSearch(query: string, engine: string, key: string) {
   const url = new URL("https://serpapi.com/search.json");
   url.searchParams.set("engine", ["google", "google_news", "google_maps"].includes(engine) ? engine : "google");
-  url.searchParams.set(engine === "google_maps" ? "q" : "q", query);
+  url.searchParams.set("q", query);
   url.searchParams.set("api_key", key);
   const res = await fetch(url);
   if (!res.ok) return { error: `Search failed (${res.status})` };
@@ -34,60 +40,84 @@ async function serpSearch(query: string, engine: string, key: string) {
   };
 }
 
+const TOOLS = [{
+  type: "function",
+  function: {
+    name: "web_search",
+    description: "Search the live web via SerpApi for current news, facts, weather or places.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: { type: "string" },
+        engine: { type: "string", enum: ["google", "google_news", "google_maps"] },
+      },
+      required: ["query"],
+    },
+  },
+}];
+
 export const askNia = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
   .handler(async ({ data }) => {
-    const gemini = process.env["GEMINI_API_KEY"];
+    const key = process.env["LOVABLE_API_KEY"];
     const serp = process.env["SERPAPI_API_KEY"];
-    if (!gemini) return { reply: "", error: "NIA's brain key is not configured." };
+    if (!key) return { reply: "", error: "NIA's brain is not configured." };
 
-    const contents: Content[] = data.messages.map((m) => ({ role: m.role === "user" ? "user" : "model", parts: [{ text: m.text }] }));
+    const messages: Msg[] = [
+      { role: "system", content: `${SYSTEM}\n\nCurrent dashboard state:\n${data.dashboard}` },
+      ...data.messages.map((m) => ({ role: m.role, content: m.text }) as Msg),
+    ];
     const sources: string[] = [];
-    const body = () => ({
-      systemInstruction: { parts: [{ text: `${SYSTEM}\n\nCurrent dashboard state:\n${data.dashboard}` }] },
-      contents,
-      tools: serp ? [{ functionDeclarations: [{
-        name: "web_search",
-        description: "Search the live web via SerpApi.",
-        parameters: { type: "OBJECT", properties: {
-          query: { type: "STRING" },
-          engine: { type: "STRING", enum: ["google", "google_news", "google_maps"] },
-        }, required: ["query"] },
-      }] }] : undefined,
-    });
+    let runId: string | undefined;
 
     for (let step = 0; step < 3; step++) {
+      const headers: Record<string, string> = {
+        "content-type": "application/json",
+        "Lovable-API-Key": key,
+        Authorization: `Bearer ${key}`,
+        "X-Lovable-AIG-SDK": "fetch",
+      };
+      if (runId) headers["X-Lovable-AIG-Run-ID"] = runId;
       let res: Response | null = null;
       for (let attempt = 0; attempt < 3; attempt++) {
-        res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent", {
+        res = await fetch(GATEWAY, {
           method: "POST",
-          headers: { "content-type": "application/json", "x-goog-api-key": gemini },
-          body: JSON.stringify(body()),
+          headers,
+          body: JSON.stringify({ model: MODEL, messages, ...(serp && step < 2 ? { tools: TOOLS } : {}) }),
         });
-        if (res.status !== 503) break;
-        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        if (res.status !== 429 && res.status < 500) break;
+        await new Promise((r) => setTimeout(r, 1500 * (attempt + 1) + Math.random() * 500));
       }
+      runId ??= res?.headers.get("X-Lovable-AIG-Run-ID") ?? undefined;
       if (!res || !res.ok) {
         const status = res?.status ?? 0;
-        console.error("Gemini error", status, res ? (await res.text()).slice(0, 500) : "no response");
-        const msg = status === 429 || status === 503 ? "NIA is in high demand right now. Please try again in a moment."
-          : status === 400 || status === 401 || status === 403 ? "NIA's Gemini key was rejected. Please check the key."
+        const body = res ? await res.text() : "";
+        console.error("AI gateway error", status, body.slice(0, 500));
+        let safe = "";
+        try { safe = JSON.parse(body)?.error?.message ?? JSON.parse(body)?.message ?? ""; } catch { /* ignore */ }
+        const msg = status === 429 ? "NIA is in high demand right now. Please try again in a moment."
+          : status === 402 ? (safe || "NIA's AI credits are used up. Add credits in workspace settings.")
+          : status === 403 ? (safe || "NIA's brain access is blocked for this workspace.")
           : "NIA's brain is temporarily unavailable.";
         return { reply: "", error: msg };
       }
-      const j = (await res.json()) as { candidates?: { content?: { parts?: Part[] } }[] };
-      const parts = j.candidates?.[0]?.content?.parts ?? [];
-      const call = parts.find((p) => p.functionCall)?.functionCall;
-      if (call && serp && step < 2) {
-        const q = String(call.args["query"] ?? "");
-        const engine = String(call.args["engine"] ?? "google");
-        sources.push(`${engine.replace("google_", "")}: ${q}`);
-        const result = await serpSearch(q, engine, serp).catch(() => ({ error: "Search unavailable" }));
-        contents.push({ role: "model", parts });
-        contents.push({ role: "user", parts: [{ functionResponse: { name: call.name, response: { result } } } as Part] });
+      const j = (await res.json()) as { choices?: { message?: { content?: string | null; tool_calls?: ToolCall[] } }[] };
+      const msg = j.choices?.[0]?.message;
+      const calls = msg?.tool_calls ?? [];
+      if (calls.length && serp) {
+        messages.push({ role: "assistant", content: msg?.content ?? null, tool_calls: calls });
+        for (const call of calls) {
+          let args: Record<string, unknown> = {};
+          try { args = JSON.parse(call.function.arguments || "{}"); } catch { /* ignore */ }
+          const q = String(args["query"] ?? "");
+          const engine = String(args["engine"] ?? "google");
+          sources.push(`${engine.replace("google_", "")}: ${q}`);
+          const result = await serpSearch(q, engine, serp).catch(() => ({ error: "Search unavailable" }));
+          messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
+        }
         continue;
       }
-      const reply = parts.map((p) => p.text ?? "").join("").trim();
+      const reply = (msg?.content ?? "").trim();
       return { reply: reply || "I have no answer for that yet.", sources };
     }
     return { reply: "I could not complete that search.", sources };
