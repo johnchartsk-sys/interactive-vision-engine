@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      nia_communications: {
+        Row: {
+          confirmed_at: string | null
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          provider_id: string | null
+          recipient: string
+          source_key: string | null
+          status: string
+          subject: string
+        }
+        Insert: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          provider_id?: string | null
+          recipient: string
+          source_key?: string | null
+          status?: string
+          subject?: string
+        }
+        Update: {
+          confirmed_at?: string | null
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          provider_id?: string | null
+          recipient?: string
+          source_key?: string | null
+          status?: string
+          subject?: string
+        }
+        Relationships: []
+      }
+      nia_routine_events: {
+        Row: {
+          created_at: string
+          id: string
+          message: string
+          summary_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message: string
+          summary_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string
+          summary_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
