@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const CALLER = '+17372212163';
-export const ALERT_PHONE = '+2643045639';
+export const ALERT_PHONE = '+264813045639';
 export const ALERT_EMAIL = 'johnchartsk@gmail.com';
 export const SUMMARY_CRON = '0 16 * * *';
 export const DraftSchema = z.discriminatedUnion('kind', [
