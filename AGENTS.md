@@ -15,3 +15,5 @@
 - Render NIA using the original portrait texture on a curved 3D relief with bounded orbit controls; this preserves its exact reference identity without inventing unseen facial views.
 - Create intrinsic Three.js scene elements with React.createElement rather than JSX; preview source-selection attributes are DOM-only and crash R3F property updates.
 - Keep command-center actions as explicit demonstration interactions until real services are connected; never imply live infrastructure data.
+- NIA's AI only returns validated communication drafts; a dedicated confirmation card invokes sendCommunication, keeping generation separate from transmission.
+- Store the explicit communication test-mode choice in browser storage, defaulting to simulation when no choice exists; reopening chat must not silently enable real sending.
