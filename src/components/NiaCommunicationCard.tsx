@@ -8,7 +8,7 @@ import type { CommunicationDraft } from "@/lib/nia-comms";
 export function NiaCommunicationCard({ draft, testMode, onCancel, onResult }: {
   draft: CommunicationDraft;
   testMode: boolean;
-  onCancel: () => void;
+  onCancel: (attempted: boolean) => void;
   onResult: (message: string) => void;
 }) {
   const transmit = useServerFn(sendCommunication);
@@ -45,8 +45,8 @@ export function NiaCommunicationCard({ draft, testMode, onCancel, onResult }: {
     {error && <div role="alert" className="nia-error mt-2">{error}</div>}
     {attempted && error && <p>Sending is not confirmed. Check the provider before creating another request.</p>}
     <div className="flex gap-2 mt-2">
-      <Button variant="action" disabled={busy || attempted || (!testMode && !token.trim())} onClick={confirm}><Check />{busy ? "Processing…" : testMode ? "Confirm simulation" : draft.kind === "call" ? "Confirm real call" : "Confirm real email"}</Button>
-      <Button variant="console" disabled={busy} onClick={onCancel}><X />Cancel</Button>
+      <Button variant="action" className="flex-1 min-w-0" disabled={busy || attempted || (!testMode && !token.trim())} onClick={confirm}><Check />{busy ? "Processing…" : testMode ? "Confirm simulation" : draft.kind === "call" ? "Confirm real call" : "Confirm real email"}</Button>
+      <Button variant="console" className="shrink-0" disabled={busy} onClick={() => onCancel(attempted)}><X />{attempted ? "Close" : "Cancel"}</Button>
     </div>
   </section>;
 }

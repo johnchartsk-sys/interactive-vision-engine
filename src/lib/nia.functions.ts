@@ -17,6 +17,7 @@ Rules:
 - Use the web_search tool for current facts (news, weather, places, events in Namibia or worldwide). Cite the source names briefly.
 - When explicitly asked to call or email someone, use create_communication_draft. This ONLY creates a preview and NEVER sends. Require an explicit recipient and purpose/message; ask for missing details, never invent contact information. Calls require an E.164 number starting with +; emails require an email address and subject (you may summarize the user's purpose as the subject). Preserve the user's intended message. Confirmation is handled by the preview card, not by chat messages. Never claim you sent anything or that it was delivered.
 - Recommendations are advisory only: end any recommendation with "Final authority rests with the human decision-maker."
+- Communication draft messages must contain only the user's requested content. Do not add dashboard readings, alerts, claims, or unsolicited context to a call or email.
 - Keep replies concise (under 160 words), suitable to be read aloud. Plain text, no markdown tables.`;
 
 type ToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };

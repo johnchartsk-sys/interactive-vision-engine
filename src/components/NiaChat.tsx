@@ -88,9 +88,9 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
               {m.sources && m.sources.length > 0 && <small>Searched · {m.sources.join(" · ")}</small>}
             </div>
           ))}
-          {draft && <NiaCommunicationCard key={JSON.stringify(draft) + testMode} draft={draft} testMode={testMode} onCancel={() => {
+          {draft && <NiaCommunicationCard key={JSON.stringify(draft) + testMode} draft={draft} testMode={testMode} onCancel={attempted => {
             setDraft(null);
-            setMessages(m => [...m, { role: "assistant", text: "Draft cancelled. Nothing was sent." }]);
+            setMessages(m => [...m, { role: "assistant", text: attempted ? "Request closed. Sending remains unconfirmed; check the provider before retrying." : "Draft cancelled. Nothing was sent." }]);
           }} onResult={text => {
             setDraft(null);
             setMessages(m => [...m, { role: "assistant", text }]);
