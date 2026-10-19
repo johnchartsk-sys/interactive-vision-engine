@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const CALLER = '+17372508034.';
+export const CALLER = '+17372508034';
 export const ALERT_PHONE = '+264813045639';
 export const ALERT_EMAIL = 'johnchartsk@gmail.com';
 export const SUMMARY_CRON = '0 16 * * *';
