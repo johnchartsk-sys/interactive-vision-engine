@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { DraftSchema, type CommunicationDraft } from "./nia-comms";
 
 const Input = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) })).min(1).max(30),
@@ -14,6 +15,7 @@ Abilities: answer questions, explain what is on the command-center dashboard, an
 Rules:
 - Dashboard figures are DEMONSTRATION data, not live sensors. Say so when relevant.
 - Use the web_search tool for current facts (news, weather, places, events in Namibia or worldwide). Cite the source names briefly.
+- When explicitly asked to call or email someone, use create_communication_draft. This ONLY creates a preview and NEVER sends. Require an explicit recipient and purpose/message; ask for missing details, never invent contact information. Calls require an E.164 number starting with +; emails require an email address and subject (you may summarize the user's purpose as the subject). Preserve the user's intended message. Confirmation is handled by the preview card, not by chat messages. Never claim you sent anything or that it was delivered.
 - Recommendations are advisory only: end any recommendation with "Final authority rests with the human decision-maker."
 - Keep replies concise (under 160 words), suitable to be read aloud. Plain text, no markdown tables.`;
 
@@ -55,10 +57,22 @@ const TOOLS = [{
     },
   },
 }];
+const DRAFT_TOOL = {
+  type: "function",
+  function: {
+    name: "create_communication_draft",
+    description: "Create a call or email preview ONLY when the user explicitly asks. No transmission occurs.",
+    parameters: {
+      type: "object",
+      properties: { kind: { type: "string", enum: ["call", "email"] }, recipient: { type: "string" }, subject: { type: "string" }, message: { type: "string" } },
+      required: ["kind", "recipient", "subject", "message"],
+    },
+  },
+};
 
 export const askNia = createServerFn({ method: "POST" })
   .inputValidator((d) => Input.parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data }): Promise<{ reply: string; error?: string; sources?: string[]; draft?: CommunicationDraft }> => {
     const key = process.env["LOVABLE_API_KEY"];
     const serp = process.env["SERPAPI_API_KEY"];
     if (!key) return { reply: "", error: "NIA's brain is not configured." };
@@ -83,7 +97,7 @@ export const askNia = createServerFn({ method: "POST" })
         res = await fetch(GATEWAY, {
           method: "POST",
           headers,
-          body: JSON.stringify({ model: MODEL, messages, ...(serp && step < 2 ? { tools: TOOLS } : {}) }),
+          body: JSON.stringify({ model: MODEL, messages, tools: [DRAFT_TOOL, ...(serp && step < 2 ? TOOLS : [])] }),
         });
         if (res.status !== 429 && res.status < 500) break;
         await new Promise((r) => setTimeout(r, 1500 * (attempt + 1) + Math.random() * 500));
@@ -104,11 +118,20 @@ export const askNia = createServerFn({ method: "POST" })
       const j = (await res.json()) as { choices?: { message?: { content?: string | null; tool_calls?: ToolCall[] } }[] };
       const msg = j.choices?.[0]?.message;
       const calls = msg?.tool_calls ?? [];
-      if (calls.length && serp) {
+      if (calls.length) {
         messages.push({ role: "assistant", content: msg?.content ?? null, tool_calls: calls });
         for (const call of calls) {
           let args: Record<string, unknown> = {};
           try { args = JSON.parse(call.function.arguments || "{}"); } catch { /* ignore */ }
+          if (call.function.name === "create_communication_draft") {
+            const parsed = DraftSchema.safeParse(args);
+            if (!parsed.success) return { reply: "Please provide a valid international phone number or email address, and the message to send (plus a subject for email)." };
+            return { reply: "Your draft is ready for review. Nothing has been sent.", draft: parsed.data, sources };
+          }
+          if (call.function.name !== "web_search" || !serp) {
+            messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ error: "Tool unavailable" }) });
+            continue;
+          }
           const q = String(args["query"] ?? "");
           const engine = String(args["engine"] ?? "google");
           sources.push(`${engine.replace("google_", "")}: ${q}`);
