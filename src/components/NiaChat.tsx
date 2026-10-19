@@ -77,7 +77,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
             <Button variant="console" aria-label="Close NIA" onClick={onClose}><X /></Button>
           </div>
         </div>
-        <div className="nia-mode"><label><input type="checkbox" aria-label="Test mode" checked={testMode} disabled={busy} onChange={e => {
+        <div className="nia-mode"><label><input type="checkbox" aria-label="Test mode" checked={testMode} disabled={busy || !!draft} onChange={e => {
           setTestMode(e.target.checked);
           try { window.localStorage.setItem("nia-communication-test-mode", String(e.target.checked)); } catch { /* Keep the in-memory choice. */ }
         }} />Test mode</label><span className="text-muted-foreground">{testMode ? "Simulated calls & emails" : "Real sending · confirmation required"}</span></div>

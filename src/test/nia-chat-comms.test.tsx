@@ -11,7 +11,7 @@ const callDraft = { kind: 'call', recipient: '+264811234567', subject: '', messa
 function openChat() { render(<NiaChat dashboard="Demo" onClose={() => {}} onRecommendation={() => {}} />); }
 async function requestDraft() {
   fireEvent.change(screen.getByLabelText('Message NIA'), { target: { value: 'Call +264811234567 to check pump 12.' } });
-  fireEvent.click(screen.getByRole('button', { name: 'Send', exact: true }));
+  fireEvent.click(screen.getByRole('button', { name: /^Send$/ }));
   await screen.findByRole('region', { name: 'Communication confirmation' });
 }
 describe('NIA chat communications', () => {
@@ -33,7 +33,7 @@ describe('NIA chat communications', () => {
   it('cancels an email without sending', async () => {
     mocks.ask.mockResolvedValue({ reply: 'Draft ready.', draft: { kind: 'email', recipient: 'operator@example.com', subject: 'Pump 12', message: 'Review pressure.' } });
     openChat(); await requestDraft();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel', exact: true }));
+    fireEvent.click(screen.getByRole('button', { name: /^Cancel$/ }));
     expect(mocks.send).not.toHaveBeenCalled();
     expect(screen.queryByRole('region', { name: 'Communication confirmation' })).not.toBeInTheDocument();
   });
@@ -52,7 +52,6 @@ describe('NIA chat communications', () => {
     fireEvent.change(screen.getByLabelText('Operator passcode'), { target: { value: 'test-only' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm real call' }));
     await waitFor(() => expect(mocks.send).toHaveBeenCalledTimes(1));
-    expect(mocks.send.mock.calls[0][0].data.testMode).toBe(false);
-    expect(mocks.send.mock.calls[0][0].data.confirmed).toBe(true);
+    expect(mocks.send).toHaveBeenCalledWith({ data: expect.objectContaining({ testMode: false, confirmed: true }) });
   });
 });
