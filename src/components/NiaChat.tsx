@@ -3,6 +3,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { Lightbulb, LayoutDashboard, Mic, MicOff, Radio, Send, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { askNia } from "@/lib/nia.functions";
+import { NiaCommunicationCard } from "@/components/NiaCommunicationCard";
+import type { CommunicationDraft } from "@/lib/nia-comms";
 
 type Msg = { role: "user" | "assistant"; text: string; sources?: string[] | undefined };
 
@@ -14,11 +16,17 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
   const [error, setError] = useState("");
   const [listening, setListening] = useState(false);
   const [voice, setVoice] = useState(true);
+  const [draft, setDraft] = useState<CommunicationDraft | null>(null);
+  const [testMode, setTestMode] = useState(true);
   const endRef = useRef<HTMLDivElement>(null);
   const recRef = useRef<any>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView?.({ behavior: "smooth" }); }, [messages, busy]);
   useEffect(() => () => { window.speechSynthesis?.cancel(); recRef.current?.stop?.(); }, []);
+  useEffect(() => {
+    try { setTestMode(window.localStorage.getItem("nia-communication-test-mode") !== "false"); } catch { /* Default to simulation if storage is unavailable. */ }
+  }, []);
+  useEffect(() => { endRef.current?.scrollIntoView?.({ behavior: "smooth" }); }, [draft]);
 
   const speak = (t: string) => {
     if (!voice || !window.speechSynthesis) return;
@@ -30,7 +38,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
 
   const send = async (text: string) => {
     const t = text.trim();
-    if (!t || busy) return;
+    if (!t || busy || draft) return;
     const next = [...messages, { role: "user" as const, text: t }];
     setMessages(next); setInput(""); setBusy(true); setError("");
     try {
@@ -38,6 +46,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
       if (r.error) setError(r.error);
       else {
         setMessages((m) => [...m, { role: "assistant", text: r.reply, sources: r.sources }]);
+        if (r.draft) setDraft(r.draft);
         speak(r.reply);
         if (/recommend/i.test(t)) onRecommendation(r.reply);
       }
@@ -68,6 +77,10 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
             <Button variant="console" aria-label="Close NIA" onClick={onClose}><X /></Button>
           </div>
         </div>
+        <div className="nia-mode"><label><input type="checkbox" aria-label="Test mode" checked={testMode} disabled={busy || !!draft} onChange={e => {
+          setTestMode(e.target.checked);
+          try { window.localStorage.setItem("nia-communication-test-mode", String(e.target.checked)); } catch { /* Keep the in-memory choice. */ }
+        }} />Test mode</label><span className="text-muted-foreground">{testMode ? "Simulated calls & emails" : "Real sending · confirmation required"}</span></div>
         <div className="nia-transcript" aria-live="polite">
           {messages.map((m, i) => (
             <div key={i} className={`nia-msg ${m.role}`}>
@@ -75,18 +88,26 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
               {m.sources && m.sources.length > 0 && <small>Searched · {m.sources.join(" · ")}</small>}
             </div>
           ))}
+          {draft && <NiaCommunicationCard key={JSON.stringify(draft) + testMode} draft={draft} testMode={testMode} onCancel={attempted => {
+            setDraft(null);
+            setMessages(m => [...m, { role: "assistant", text: attempted ? "Request closed. Sending remains unconfirmed; check the provider before retrying." : "Draft cancelled. Nothing was sent." }]);
+          }} onResult={text => {
+            setDraft(null);
+            setMessages(m => [...m, { role: "assistant", text }]);
+            speak(text);
+          }} />}
           {busy && <div className="nia-msg assistant"><p className="nia-thinking">NIA is analysing…</p></div>}
           <div ref={endRef} />
         </div>
         {error && <div role="alert" className="nia-error">{error}</div>}
         <div className="nia-quick">
-          <Button variant="console" disabled={busy} onClick={() => send("Explain the current dashboard status across all sectors.")}><LayoutDashboard />Explain dashboard</Button>
-          <Button variant="console" disabled={busy} onClick={() => send("Recommend the top 3 actions based on the current alerts and simulation.")}><Lightbulb />Recommend actions</Button>
+          <Button variant="console" disabled={busy || !!draft} onClick={() => send("Explain the current dashboard status across all sectors.")}><LayoutDashboard />Explain dashboard</Button>
+          <Button variant="console" disabled={busy || !!draft} onClick={() => send("Recommend the top 3 actions based on the current alerts and simulation.")}><Lightbulb />Recommend actions</Button>
         </div>
         <form className="nia-composer" onSubmit={(e) => { e.preventDefault(); send(input); }}>
           <textarea aria-label="Message NIA" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(input); } }} placeholder={listening ? "Listening…" : "Ask NIA anything…"} rows={2} />
           <Button type="button" variant="console" data-active={listening} aria-label={listening ? "Stop listening" : "Speak to NIA"} onClick={toggleMic}>{listening ? <MicOff /> : <Mic />}</Button>
-          <Button type="submit" variant="action" disabled={busy || !input.trim()} aria-label="Send"><Send /></Button>
+          <Button type="submit" variant="action" disabled={busy || !!draft || !input.trim()} aria-label="Send"><Send /></Button>
         </form>
       </section>
     </div>

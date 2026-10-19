@@ -12,7 +12,7 @@ export async function twilio(path: string, body?: URLSearchParams) {
   const lovable = process.env['LOVABLE_API_KEY'];
   if (!key || !lovable) throw new Error('Twilio connection is not configured.');
   const res = await fetch(`https://connector-gateway.lovable.dev/twilio${path}`, {
-    method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${lovable}`, 'X-Connection-Api-Key': key, ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) }, body,
+    method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${lovable}`, 'X-Connection-Api-Key': key, ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) }, ...(body ? { body: body.toString() } : {}),
   });
   if (!res.ok) {
     // Do not log provider bodies: they may echo private recipients or credentials.

@@ -1,9 +1,9 @@
 import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
-import { DraftSchema, callStatus } from './nia-comms';
+import { SendCommunicationSchema, callStatus } from './nia-comms';
 
 export const sendCommunication = createServerFn({ method: 'POST' })
-  .inputValidator(d => z.object({ draft: DraftSchema, testMode: z.boolean(), confirmed: z.literal(true), token: z.string().max(512), requestId: z.string().uuid() }).parse(d))
+  .inputValidator(d => SendCommunicationSchema.parse(d))
   .handler(async ({ data }) => {
     if (data.testMode) return { message: `SIMULATED ${data.draft.kind}: no real call or email was sent.`, recordId: '', status: 'simulated' };
           const { authorizeOperator, transmit } = await import('./nia-comms.server');authorizeOperator(data.token);

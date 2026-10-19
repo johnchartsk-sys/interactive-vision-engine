@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ALERT_EMAIL, ALERT_PHONE, CALLER, DraftSchema, SUMMARY_CRON, alertChannels, callStatus, escapeXml } from '@/lib/nia-comms';
+import { ALERT_EMAIL, ALERT_PHONE, CALLER, DraftSchema, SendCommunicationSchema, SUMMARY_CRON, alertChannels, callStatus, escapeXml } from '@/lib/nia-comms';
 describe('NIA communication rules', () => {
+  it('requires explicit confirmation and defaults unspecified sending mode to simulation', () => {
+    const request = { draft: { kind: 'call', recipient: '+264811234567', message: 'Check pump 12' }, token: '', requestId: '11111111-1111-4111-8111-111111111111' };
+    expect(SendCommunicationSchema.safeParse(request).success).toBe(false);
+    expect(SendCommunicationSchema.safeParse({ ...request, confirmed: false }).success).toBe(false);
+    expect(SendCommunicationSchema.parse({ ...request, confirmed: true }).testMode).toBe(true);
+  });
   it('supports E.164 international phone numbers and rejects local numbers', () => {
     expect(DraftSchema.safeParse({ kind: 'call', recipient: '+264811234567', message: 'Check pump 12' }).success).toBe(true);
     expect(DraftSchema.safeParse({ kind: 'call', recipient: '0811234567', message: 'Check pump 12' }).success).toBe(false);

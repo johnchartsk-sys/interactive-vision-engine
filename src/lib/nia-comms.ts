@@ -9,6 +9,7 @@ export const DraftSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('email'), recipient: z.string().email(), subject: z.string().trim().min(1).max(200), message: z.string().trim().min(1).max(10000) }),
 ]);
 export type CommunicationDraft = z.infer<typeof DraftSchema>;
+export const SendCommunicationSchema = z.object({ draft: DraftSchema, testMode: z.boolean().default(true), confirmed: z.literal(true), token: z.string().max(512), requestId: z.string().uuid() });
 export function alertChannels(severity: 'critical' | 'warning' | 'routine', verified: boolean): ('call' | 'email' | 'summary')[] {
   if (!verified) return [];
   return severity === 'critical' ? ['call', 'email'] : severity === 'warning' ? ['email'] : ['summary'];
