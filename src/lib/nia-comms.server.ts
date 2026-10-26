@@ -8,11 +8,13 @@ export function authorizeOperator(token: string) {
   if (!timingSafeEqual(hash(token), hash(expected))) throw new Error('Operator authorization was not accepted.');
 }
 export async function twilio(path: string, body?: URLSearchParams) {
-  const key = process.env['TWILIO_API_KEY'];
-  const lovable = process.env['LOVABLE_API_KEY'];
-  if (!key || !lovable) throw new Error('Twilio connection is not configured.');
-  const res = await fetch(`https://connector-gateway.lovable.dev/twilio${path}`, {
-    method: body ? 'POST' : 'GET', headers: { Authorization: `Bearer ${lovable}`, 'X-Connection-Api-Key': key, ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) }, ...(body ? { body: body.toString() } : {}),
+  const sid = process.env['TWILIO_ACCOUNT_SID'];
+  const auth = process.env['TWILIO_AUTH_TOKEN'];
+  if (!sid || !auth) throw new Error('Twilio is not configured. Add TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN to .env.local.');
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}${path}`, {
+    method: body ? 'POST' : 'GET',
+    headers: { Authorization: `Basic ${Buffer.from(`${sid}:${auth}`).toString('base64')}`, ...(body ? { 'Content-Type': 'application/x-www-form-urlencoded' } : {}) },
+    ...(body ? { body: body.toString() } : {}),
   });
   if (!res.ok) {
     // Do not log provider bodies: they may echo private recipients or credentials.

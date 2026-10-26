@@ -2,11 +2,39 @@ import { useEffect, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Lightbulb, LayoutDashboard, Mic, MicOff, Radio, Send, Volume2, VolumeX, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { askNia } from "@/lib/nia.functions";
+import { askNia, type NiaMedia } from "@/lib/nia.functions";
 import { NiaCommunicationCard } from "@/components/NiaCommunicationCard";
 import type { CommunicationDraft } from "@/lib/nia-comms";
 
-type Msg = { role: "user" | "assistant"; text: string; sources?: string[] | undefined };
+type Msg = { role: "user" | "assistant"; text: string; sources?: string[] | undefined; media?: NiaMedia[] | undefined };
+
+function MediaView({ item }: { item: NiaMedia }) {
+  if (item.type === "image")
+    return (
+      <a href={item.url} target="_blank" rel="noopener noreferrer">
+        <img src={item.thumbnail ?? item.url} alt={item.title} loading="lazy" referrerPolicy="no-referrer" style={{ maxWidth: "100%", borderRadius: 8, marginTop: 8 }} />
+        <small>{item.title}</small>
+      </a>
+    );
+  if (item.type === "video")
+    return (
+      <div style={{ marginTop: 8 }}>
+        <iframe
+          title={item.title}
+          src={`https://www.youtube-nocookie.com/embed/${item.videoId}?autoplay=1`}
+          allow="autoplay; encrypted-media; picture-in-picture"
+          allowFullScreen
+          style={{ width: "100%", aspectRatio: "16 / 9", border: 0, borderRadius: 8 }}
+        />
+        <small>{item.title}</small>
+      </div>
+    );
+  return (
+    <a href={item.url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 8, textDecoration: "underline" }}>
+      Open: {item.title}
+    </a>
+  );
+}
 
 export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: string; onClose: () => void; onRecommendation: (t: string) => void }) {
   const ask = useServerFn(askNia);
@@ -32,7 +60,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
     if (!voice || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t);
-    u.rate = 1; u.pitch = 0.95;
+    const vs = window.speechSynthesis.getVoices(); const pick = ["Ryan", "George", "Google UK English Male", "Daniel", "Arthur"].map((n) => vs.find((v) => v.name.includes(n))).find(Boolean) ?? vs.find((v) => v.lang === "en-GB"); if (pick) u.voice = pick; u.rate = 0.96; u.pitch = 0.8;
     window.speechSynthesis.speak(u);
   };
 
@@ -45,7 +73,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
       const r = await ask({ data: { messages: next.slice(-20).map(({ role, text }) => ({ role, text })), dashboard } });
       if (r.error) setError(r.error);
       else {
-        setMessages((m) => [...m, { role: "assistant", text: r.reply, sources: r.sources }]);
+        setMessages((m) => [...m, { role: "assistant", text: r.reply, sources: r.sources, media: r.media }]);
         if (r.draft) setDraft(r.draft);
         speak(r.reply);
         if (/recommend/i.test(t)) onRecommendation(r.reply);
@@ -86,6 +114,7 @@ export function NiaChat({ dashboard, onClose, onRecommendation }: { dashboard: s
             <div key={i} className={`nia-msg ${m.role}`}>
               <p>{m.text}</p>
               {m.sources && m.sources.length > 0 && <small>Searched · {m.sources.join(" · ")}</small>}
+              {m.media?.map((item, k) => <MediaView key={k} item={item} />)}
             </div>
           ))}
           {draft && <NiaCommunicationCard key={JSON.stringify(draft) + testMode} draft={draft} testMode={testMode} onCancel={attempted => {
