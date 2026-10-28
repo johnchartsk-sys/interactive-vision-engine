@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { DraftSchema, type CommunicationDraft } from "./nia-comms";
+import { DraftSchema, type CommunicationDraft } from "./nia-comms"; import { MAP_TOOL, toMapMedia } from "./niaMap";
 
 const Input = z.object({
   messages: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(4000) })).min(1).max(30),
@@ -10,7 +10,7 @@ const Input = z.object({
 const MODEL = "gemini-3.1-flash-lite";
 const GATEWAY = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 
-const SYSTEM = `You are NIA, the National Infrastructure Intelligence Assistant of NamTwin-Go for the Republic of Namibia — a calm, confident, Jarvis-like AI.
+const SYSTEM = `You are NIA, the National Infrastructure Intelligence Assistant of NamTwin-Go for the Republic of Namibia — a calm, confident, Jarvis-like AI with a dry, witty sense of humour. Your user is Mr. John Charts, the creator of NamTwin-Go. Always address him as "sir" and never as "Commander". Use his name only occasionally, for example "Mr. Charts" or "Mr. John", so it feels natural. Be warm, sharp and sure of yourself. Add one short, clean, good-natured joke or witty remark in roughly one reply out of three, but never when reporting an alert, a fault or a safety issue, and never joke about injuries, deaths or real incidents. You operate the 3D Windhoek digital twin map: for any request to fly somewhere, zoom, show or hide the rail line, follow a simulated train, or reset the view, call map_command, and never claim the map moved until you have called it. The trains and dashboard figures are simulated, and the rail track is real OpenStreetMap data; say so if asked.
 Abilities: answer questions, explain what is on the command-center dashboard, recommend actions, and show images, play YouTube videos, or open websites.
 Rules:
 - Dashboard figures are DEMONSTRATION data, not live sensors. Say so when relevant.
@@ -30,7 +30,7 @@ type Msg =
 export type NiaMedia =
   | { type: "image"; title: string; url: string; thumbnail?: string }
   | { type: "video"; title: string; videoId: string }
-  | { type: "link"; title: string; url: string };
+  | { type: "link"; title: string; url: string } | { type: "map"; action: string; place?: string };
 
 const ENGINES = ["google", "google_news", "google_maps", "google_images", "youtube"];
 
@@ -141,7 +141,7 @@ export const askNia = createServerFn({ method: "POST" })
         res = await fetch(GATEWAY, {
           method: "POST",
           headers,
-          body: JSON.stringify({ model: MODEL, reasoning_effort: "low", messages, tools: [DRAFT_TOOL, MEDIA_TOOL, ...(serp && step < 3 ? TOOLS : [])] }),
+          body: JSON.stringify({ model: MODEL, reasoning_effort: "low", messages, tools: [DRAFT_TOOL, MEDIA_TOOL, MAP_TOOL, ...(serp && step < 3 ? TOOLS : [])] }),
         });
         if (res.status !== 429 && res.status < 500) break;
         await new Promise((r) => setTimeout(r, 1500 * (attempt + 1) + Math.random() * 500));
@@ -175,7 +175,7 @@ export const askNia = createServerFn({ method: "POST" })
             if (!parsed.success) return { reply: "Please provide a valid international phone number or email address, and the message to send (plus a subject for email)." };
             return { reply: "Your draft is ready for review. Nothing has been sent.", draft: parsed.data, sources };
           }
-          if (call.function.name === "show_media") {
+          if (call.function.name === "map_command") { const mc = toMapMedia(args); if (mc) { media.push(mc); messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ ok: true }) }); } else { messages.push({ role: "tool", tool_call_id: call.id, content: JSON.stringify({ error: "Unknown map action" }) }); } continue; } if (call.function.name === "show_media") {
             const m = toMedia(args);
             if (m) {
               media.push(m);

@@ -1,5 +1,5 @@
 // @ts-nocheck
-const OVERPASS = 'https://overpass-api.de/api/interpreter';
+import { registerMap, setRailSource } from './mapBus'; const OVERPASS = 'https://overpass-api.de/api/interpreter';
 // Railway lines in a box around Windhoek (south, west, north, east)
 const QUERY = '[out:json][timeout:25];way["railway"="rail"](-22.75,16.85,-22.45,17.30);out geom;';
 
@@ -29,7 +29,7 @@ function pointAt(Cesium: any, track: Track, d: number) {
 
 export async function addRailLayer(viewer: any) {
   const Cesium = (window as any).Cesium;
-  if (!Cesium || !viewer) return;
+  if (!Cesium || !viewer) return; registerMap(viewer);
   try {
     const res = await fetch(OVERPASS, {
       method: 'POST',
@@ -98,7 +98,7 @@ export async function addRailLayer(viewer: any) {
       });
     });
 
-    viewer.dataSources.add(source);
+    viewer.dataSources.add(source); setRailSource(source);
   } catch (e) {
     console.warn('Rail layer failed to load', e);
   }

@@ -34,7 +34,7 @@ function CommandCenter(){
  const [feedback,setFeedback]=useState('');const [notes,setNotes]=useState('');
  const [autoRotate,setAutoRotate]=useState(false);const [wireframe,setWireframe]=useState(false);const [resetKey,setResetKey]=useState(0);
  const [scenario,setScenario]=useState('Peak Demand + Power Outage');const [simState,setSimState]=useState<'idle'|'running'|'complete'>('idle');
- const [events,setEvents]=useState(initialEvents);const [niaOpen,setNiaOpen]=useState(false);const [stage,setStage]=useState<'core'|'map'>('core');const [activeSector,setActiveSector]=useState<string|null>(null);const [twin,setTwin]=useState('3D Twin');
+ const [events,setEvents]=useState(initialEvents);const [niaOpen,setNiaOpen]=useState(false);const [stage,setStage]=useState<'core'|'map'>('core');const [activeSector,setActiveSector]=useState<string|null>(null);useEffect(()=>{const h=()=>setStage('map');window.addEventListener('nia-open-map',h);return()=>window.removeEventListener('nia-open-map',h)},[]);const [twin,setTwin]=useState('3D Twin');
  const open=(name:string,category='National infrastructure intelligence')=>{setDetail({name,category});setFeedback('');setNotes('')};
  useEffect(()=>{if(!detail)return;const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setDetail(null)};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[detail]);
  useEffect(()=>{if(simState!=='running')return;const timer=setTimeout(()=>{setSimState('complete');setEvents(prev=>{const next: [string,string][]=[['Now',`Simulation complete - ${scenario}`],...prev];return next.slice(0,6)})},1800);return()=>clearTimeout(timer)},[simState,scenario]);
