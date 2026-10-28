@@ -5,9 +5,51 @@ let viewer: any = null;
 let rail: any = null;
 let pending: any[] = [];
 let readyAt = 0;
+let lineShow = true;
+let trainShow = true;
+let boxLines: any = null;
+let boxTrains: any = null;
 
 const C = () => (window as any).Cesium;
 const alive = () => viewer && !(viewer.isDestroyed && viewer.isDestroyed());
+
+function applyLayers() {
+  if (!rail) return;
+  rail.show = true;
+  rail.entities.values.forEach((e: any) => {
+    if (e.polyline) e.show = lineShow;
+    else if (e.point) e.show = trainShow;
+  });
+}
+
+function layerState(lines: boolean, trains: boolean) {
+  lineShow = lines;
+  trainShow = trains;
+  if (boxLines) boxLines.checked = lines;
+  if (boxTrains) boxTrains.checked = trains;
+  applyLayers();
+}
+
+function buildControls(v: any) {
+  const host = v.container;
+  if (!host) return;
+  host.querySelectorAll('.nia-map-controls').forEach((n: any) => n.remove());
+  const panel = document.createElement('div');
+  panel.className = 'nia-map-controls';
+  panel.style.cssText = 'position:absolute;top:8px;left:8px;z-index:5;padding:8px 10px;border-radius:8px;background:rgba(4,22,36,0.88);border:1px solid rgba(34,211,238,0.5);color:#e6faff;font:12px sans-serif;line-height:1.6;max-width:230px;';
+  panel.innerHTML =
+    '<div style="letter-spacing:1px;font-size:10px;opacity:.7;margin-bottom:4px">MAP LAYERS</div>' +
+    '<label style="display:block;cursor:pointer"><input type="checkbox" data-k="lines"> Rail lines <span style="opacity:.7">(real)</span></label>' +
+    '<label style="display:block;cursor:pointer"><input type="checkbox" data-k="trains"> Trains <span style="color:#fbbf24">(simulated)</span></label>' +
+    '<div style="margin-top:6px;font-size:10px;opacity:.8">Rail data \u00a9 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:#22d3ee">OpenStreetMap</a> contributors</div>';
+  host.appendChild(panel);
+  boxLines = panel.querySelector('input[data-k="lines"]');
+  boxTrains = panel.querySelector('input[data-k="trains"]');
+  boxLines.checked = lineShow;
+  boxTrains.checked = trainShow;
+  boxLines.addEventListener('change', () => { lineShow = boxLines.checked; applyLayers(); });
+  boxTrains.addEventListener('change', () => { trainShow = boxTrains.checked; applyLayers(); });
+}
 
 function drain() {
   const wait = Math.max(0, readyAt - Date.now());
@@ -17,11 +59,12 @@ function drain() {
 export function registerMap(v: any) {
   if (viewer !== v) rail = null;
   viewer = v;
+  buildControls(v);
   readyAt = Date.now() + 4000; // let the opening camera flight finish first
   drain();
 }
 
-export function setRailSource(src: any) { rail = src; drain(); }
+export function setRailSource(src: any) { rail = src; applyLayers(); drain(); }
 
 function flyPlace(p: any) {
   const Cesium = C();
@@ -95,12 +138,12 @@ export function runMapCommand(cmd: { action: string; place?: string }) {
       break;
     case 'show_rail':
       if (!rail) { pending.push(cmd); return; }
-      rail.show = true; frameRail();
+      layerState(true, true); frameRail();
       break;
-    case 'hide_rail': if (rail) rail.show = false; break;
+    case 'hide_rail': layerState(false, false); break;
     case 'follow_train': {
       if (!rail) { pending.push(cmd); return; }
-      rail.show = true;
+      layerState(lineShow, true);
       const ent = rail.entities.values.find((e: any) => e.name === 'Simulated train ' + (Number(cmd.place) || 1));
       if (ent) {
         ent.viewFrom = new Cesium.ConstantProperty(new Cesium.Cartesian3(0, -900, 600));
