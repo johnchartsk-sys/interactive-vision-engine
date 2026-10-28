@@ -59,7 +59,7 @@ export function CesiumTwin({ onReady }: { onReady?: (viewer: any) => void }) {
   }, []);
 
   return (
-    <div className="nia-canvas" style={{ position: 'relative' }}>
+    <div className="nia-canvas" style={{ position: 'relative', width: '100%', height: '480px', minHeight: '480px' }}>
       <div ref={box} style={{ position: 'absolute', inset: 0 }} />
       {message && (
         <div style={{ position: 'absolute', inset: 0, zIndex: 2, display: 'grid', placeItems: 'center', padding: 16, textAlign: 'center', color: '#9fe7ff', background: 'rgba(0,12,20,.85)' }}>
