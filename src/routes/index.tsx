@@ -6,7 +6,7 @@ import { InfrastructurePanel, type Sector } from '@/components/InfrastructurePan
 import { Sparkline, NamibiaNetwork } from '@/components/CommandGraphics';
 import { NiaHologram } from '@/components/NiaHologram';
 import { CesiumTwin } from '@/components/CesiumTwin';
-import { SectorDetail } from '@/components/SectorDetail'; import { runMapCommand } from '@/lib/mapBus';
+import { SectorDetail } from '@/components/SectorDetail'; import { AssetPanel } from '@/components/AssetPanel'; import { runMapCommand } from '@/lib/mapBus';
 import { addRailLayer } from '@/lib/railLayer';
 import { NiaChat } from '@/components/NiaChat';
 import water from '@/assets/water.jpg.asset.json';
