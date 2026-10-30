@@ -151,6 +151,6 @@ export function runMapCommand(cmd: { action: string; place?: string }) {
       }
       break;
     }
-    case 'stop_following': viewer.trackedEntity = undefined; break;
+    case 'stop_following': viewer.trackedEntity = undefined; break; case 'trigger_fault': case 'clear_fault': { if (!rail) { pending.push(cmd); return; } const ids = cmd.place === 'all' ? ['SIM-LOCO-01', 'SIM-LOCO-02', 'SIM-LOCO-03'] : ['SIM-LOCO-0' + (Number(cmd.place) || 1)]; import('./faultSim').then((m) => ids.forEach((i) => (cmd.action === 'trigger_fault' ? m.triggerFault(i) : m.clearFault(i)))); break; }
   }
 }
