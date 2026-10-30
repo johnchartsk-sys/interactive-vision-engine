@@ -1,8 +1,19 @@
 // @ts-nocheck
+import { createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import { selectAsset, getAsset, getSelectedId, subscribe } from './assetBus';
+import { AssetPanel } from '../components/AssetPanel';
 
 const handlers = new WeakMap();
 let current: any = null;
+
+function mountPanel() {
+  if (document.getElementById('nia-asset-panel-root')) return;
+  const host = document.createElement('div');
+  host.id = 'nia-asset-panel-root';
+  document.body.appendChild(host);
+  createRoot(host).render(createElement(AssetPanel));
+}
 
 function unhighlight() {
   if (!current) return;
@@ -36,6 +47,7 @@ export function enableAssetPicking(viewer: any) {
   const Cesium = (window as any).Cesium;
   current = null;
   selectAsset(null);
+  mountPanel();
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
   handlers.set(viewer, handler);
 
@@ -56,4 +68,13 @@ export function enableAssetPicking(viewer: any) {
   }, Cesium.ScreenSpaceEventType.MOUSE_MOVE);
 
   subscribe(() => { if (!getSelectedId()) unhighlight(); });
+
+  // when the map is closed (Core view), clear the selection so the panel disappears
+  const watch = setInterval(() => {
+    if (viewer.isDestroyed && viewer.isDestroyed()) {
+      clearInterval(watch);
+      handlers.delete(viewer);
+      selectAsset(null);
+    }
+  }, 1000);
 }
