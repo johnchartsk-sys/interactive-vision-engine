@@ -2,17 +2,19 @@
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { selectAsset, getAsset, getSelectedId, subscribe } from './assetBus';
+import { resetFaults } from './faultSim';
 import { AssetPanel } from '../components/AssetPanel';
+import { SimSandbox } from '../components/SimSandbox';
 
 const handlers = new WeakMap();
 let current: any = null;
 
-function mountPanel() {
-  if (document.getElementById('nia-asset-panel-root')) return;
+function mountRoot(id: string, component: any) {
+  if (document.getElementById(id)) return;
   const host = document.createElement('div');
-  host.id = 'nia-asset-panel-root';
+  host.id = id;
   document.body.appendChild(host);
-  createRoot(host).render(createElement(AssetPanel));
+  createRoot(host).render(createElement(component));
 }
 
 function unhighlight() {
@@ -46,8 +48,11 @@ export function enableAssetPicking(viewer: any) {
   if (handlers.has(viewer)) return;
   const Cesium = (window as any).Cesium;
   current = null;
+  (window as any).__niaViewer = viewer;
+  resetFaults();
   selectAsset(null);
-  mountPanel();
+  mountRoot('nia-asset-panel-root', AssetPanel);
+  mountRoot('nia-sandbox-root', SimSandbox);
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
   handlers.set(viewer, handler);
 
@@ -74,6 +79,7 @@ export function enableAssetPicking(viewer: any) {
     if (viewer.isDestroyed && viewer.isDestroyed()) {
       clearInterval(watch);
       handlers.delete(viewer);
+      if ((window as any).__niaViewer === viewer) (window as any).__niaViewer = null;
       selectAsset(null);
     }
   }, 1000);
