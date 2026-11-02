@@ -1,5 +1,5 @@
 // @ts-nocheck
-export type Row = [string, string];
+import { washawayText, heatText } from './nasaWeather'; export type Row = [string, string];
 export type WO = { id: string; title: string; status: string; when: string };
 
 const T0 = Date.now();
@@ -87,6 +87,6 @@ export function trackCondition(id: string): Row[] {
     ['Sleeper age', (5 + Math.round(seed(id, 'sl') * 30)) + ' years'],
     ['Rail wear', Math.round(seed(id, 'rw') * 35) + ' %'],
     ['Last geometry inspection', (10 + Math.round(seed(id, 'gi') * 170)) + ' days ago'],
-    ['Washaway risk', 'Not assessed (NASA rain layer comes later)'],
+    ['Washaway risk (regional)', washawayText()], ['Rail heat stress (regional)', heatText()],
   ];
 }

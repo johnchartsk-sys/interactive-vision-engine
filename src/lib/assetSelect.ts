@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { selectAsset, getAsset, getSelectedId, subscribe } from './assetBus';
 import { resetFaults } from './faultSim';
 import { AssetPanel } from '../components/AssetPanel';
-import { SimSandbox } from '../components/SimSandbox';
+import { SimSandbox } from '../components/SimSandbox'; import { WeatherCard } from '../components/WeatherCard';
 
 const handlers = new WeakMap();
 let current: any = null;
@@ -52,7 +52,7 @@ export function enableAssetPicking(viewer: any) {
   resetFaults();
   selectAsset(null);
   mountRoot('nia-asset-panel-root', AssetPanel);
-  mountRoot('nia-sandbox-root', SimSandbox);
+  mountRoot('nia-sandbox-root', SimSandbox); const wHost = document.createElement('div'); wHost.style.cssText = 'position:absolute;top:8px;right:8px;z-index:6;'; viewer.container.appendChild(wHost); createRoot(wHost).render(createElement(WeatherCard));
   const handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
   handlers.set(viewer, handler);
 
