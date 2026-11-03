@@ -1,21 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Droplets, Pause, Play, RotateCcw } from 'lucide-react';
+import { Droplets, Pause, Play, Radio, RotateCcw } from 'lucide-react';
 import { useWaterSim } from './useWaterSim';
 import { CesiumPipelineViewer } from './CesiumPipelineViewer';
 import { AlertsPanel, AssetGrid, ConditionPanel, ConsumptionChart, GaugesPanel, Inspector, MaintenancePanel } from './panels';
+import { IncidentPopup, NiaWatchPanel } from './AgentPanel';
+import { runWaterCommand, startAgent, useAgent, waterSummary } from './agent';
+import { NiaChat } from '@/components/NiaChat';
 
 const SPEEDS: Array<[number, string]> = [[6, '1x'], [15, '2.5x'], [30, '5x']];
 
 export function WaterDashboard() {
   const { sim, snap } = useWaterSim();
+  const ag = useAgent();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null);
+  const [niaOpen, setNiaOpen] = useState(false);
 
   const select = (id: string | null, fly = false) => {
     setSelectedId(id);
     if (id && fly) setFocus({ id, n: Date.now() });
   };
+
+  useEffect(() => startAgent(sim), [sim]);
+
+  useEffect(() => {
+    const h = (e: any) => {
+      const d = (e && e.detail) || {};
+      const id = runWaterCommand(sim, d.action, d.place);
+      if (d.action === 'water_focus' && id) select(id, true);
+    };
+    window.addEventListener('nia-water', h);
+    return () => window.removeEventListener('nia-water', h);
+  }, [sim]);
+
   const selEdge = snap.edges.find((e) => e.id === selectedId);
   const selNode = snap.nodes.find((n) => n.id === selectedId);
   const selTicket = selEdge ? snap.tickets.find((t) => t.assetId === selEdge.id && t.status !== 'Done' && t.priority === 'Emergency') : undefined;
@@ -23,6 +41,7 @@ export function WaterDashboard() {
 
   return (
     <div className="fixed inset-0 z-[100] overflow-auto bg-slate-950 text-slate-100">
+      <IncidentPopup onSelect={(id: string) => select(id, true)} />
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-cyan-500/20 bg-slate-900/80 px-4 py-2">
         <div className="flex items-center gap-3">
           <Droplets className="text-cyan-300" size={22} />
@@ -41,6 +60,7 @@ export function WaterDashboard() {
           ))}
           <button className="rounded border border-red-500/60 bg-red-500/10 px-2 py-1 text-red-300" onClick={() => { sim.triggerBreak(); }}>Simulate main break</button>
           <button className="flex items-center gap-1 rounded border border-slate-600 px-2 py-1 text-slate-300" onClick={() => { sim.reset(); setSelectedId(null); }}><RotateCcw size={13} />Reset</button>
+          <button className="flex items-center gap-1 rounded border border-cyan-500/50 bg-cyan-500/10 px-2 py-1 text-cyan-300" onClick={() => setNiaOpen(true)}><Radio size={13} />NIA</button>
           <Link to="/" className="rounded border border-slate-600 px-2 py-1 text-slate-300">Command center</Link>
         </div>
       </header>
@@ -50,6 +70,7 @@ export function WaterDashboard() {
           <GaugesPanel kpi={snap.kpi} />
           <ConsumptionChart history={snap.history} />
           <ConditionPanel kpi={snap.kpi} />
+          <NiaWatchPanel onSelect={(id: string) => select(id, true)} />
         </div>
 
         <div className="relative h-[62vh] min-h-[420px] overflow-hidden rounded-xl border border-cyan-500/30 xl:h-full">
@@ -76,6 +97,8 @@ export function WaterDashboard() {
           </p>
         </div>
       </main>
+
+      {niaOpen && <NiaChat dashboard={waterSummary(snap, ag.incidents)} onClose={() => setNiaOpen(false)} onRecommendation={() => {}} />}
     </div>
   );
 }
