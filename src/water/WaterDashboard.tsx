@@ -5,7 +5,7 @@ import { useWaterSim } from './useWaterSim';
 import { CesiumPipelineViewer } from './CesiumPipelineViewer';
 import { AlertsPanel, AssetGrid, ConditionPanel, ConsumptionChart, GaugesPanel, Inspector, MaintenancePanel } from './panels';
 import { IncidentPopup, NiaWatchPanel } from './AgentPanel';
-import { runWaterCommand, startAgent, useAgent, waterSummary } from './agent';
+import { runWaterCommand, startAgent, useAgent, waterSummary } from './agent'; import { AssumptionsPanel, ScarcityPanel } from './ScarcityPanel'; import { scarcitySummary } from './scarcity';
 import { NiaChat } from '@/components/NiaChat';
 
 const SPEEDS: Array<[number, string]> = [[6, '1x'], [15, '2.5x'], [30, '5x']];
@@ -70,7 +70,7 @@ export function WaterDashboard() {
           <GaugesPanel kpi={snap.kpi} />
           <ConsumptionChart history={snap.history} />
           <ConditionPanel kpi={snap.kpi} />
-          <NiaWatchPanel onSelect={(id: string) => select(id, true)} />
+          <ScarcityPanel sim={sim} snap={snap} /><NiaWatchPanel onSelect={(id: string) => select(id, true)} />
         </div>
 
         <div className="relative h-[62vh] min-h-[420px] overflow-hidden rounded-xl border border-cyan-500/30 xl:h-full">
@@ -90,7 +90,7 @@ export function WaterDashboard() {
         <div className="space-y-3 xl:overflow-y-auto xl:pr-1">
           <AlertsPanel alerts={snap.alerts} leaks={snap.leaks} kpi={snap.kpi} onSelect={(id) => select(id, true)} onAck={(id) => sim.acknowledge(id)} />
           <MaintenancePanel tickets={snap.tickets} onSelect={(id) => select(id, true)} onDispatch={(id) => sim.dispatchCrew(id)} />
-          <AssetGrid nodes={snap.nodes} onSelect={(id) => select(id, true)} onTogglePump={(id) => sim.togglePump(id)} />
+          <AssetGrid nodes={snap.nodes} onSelect={(id) => select(id, true)} onTogglePump={(id) => sim.togglePump(id)} /><AssumptionsPanel />
           <p className="px-1 pb-4 text-[10px] leading-snug text-slate-500">
             Simplified hydraulics (tree network, Hazen-Williams friction, gravity-fed pressure from reservoir level, pump boost). Not a calibrated model.
             All values are simulated. Units: GPM and PSI.
@@ -98,7 +98,7 @@ export function WaterDashboard() {
         </div>
       </main>
 
-      {niaOpen && <NiaChat dashboard={waterSummary(snap, ag.incidents)} onClose={() => setNiaOpen(false)} onRecommendation={() => {}} />}
+      {niaOpen && <NiaChat dashboard={(waterSummary(snap, ag.incidents).slice(0, 5600) + '\n' + scarcitySummary()).slice(0, 5990)} onClose={() => setNiaOpen(false)} onRecommendation={() => {}} />}
     </div>
   );
 }

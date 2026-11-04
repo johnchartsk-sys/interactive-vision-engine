@@ -11,7 +11,7 @@ export const PLACES: Record<string, { lon: number; lat: number; height: number; 
 export const ACTIONS = [
   "fly_to", "zoom_in", "zoom_out", "top_down", "show_rail", "hide_rail", "follow_train", "stop_following", "reset_view",
   "trigger_fault", "clear_fault",
-  "water_break", "water_trip_pump", "water_restore_pump", "water_ack", "water_power_dip", "water_restore_power", "water_focus",
+  "water_break", "water_trip_pump", "water_restore_pump", "water_ack", "water_power_dip", "water_restore_power", "water_focus", "water_scarcity", "water_compliance",
 ] as const;
 
 export const MAP_TOOL = {
@@ -20,7 +20,7 @@ export const MAP_TOOL = {
     name: "map_command",
     description:
       "Control the 3D twins. Rail map actions: fly_to a place, zoom_in, zoom_out, top_down, show_rail, hide_rail, follow_train, stop_following, reset_view. trigger_fault starts a SIMULATED axle bearing overheat on a simulated train and clear_fault clears it. " +
-      "Water twin actions (work only on the /water page, simulated network): water_break (place = pipe id such as E-04, or empty for the weakest pipe), water_trip_pump and water_restore_pump (place = PS-1 or PS-2), water_ack (acknowledge all open incidents), water_power_dip (simulated substation power dip that trips PS-1), water_restore_power (restart PS-1), water_focus (place = any asset id: TP-1, PS-1, PS-2, R-1, R-2, D-1 to D-6, E-01 to E-10). " +
+      "Water twin actions (work only on the /water page, simulated network): water_break (place = pipe id such as E-04, or empty for the weakest pipe), water_trip_pump and water_restore_pump (place = PS-1 or PS-2), water_ack (acknowledge all open incidents), water_power_dip (simulated substation power dip that trips PS-1), water_restore_power (restart PS-1), water_focus (place = any asset id: TP-1, PS-1, PS-2, R-1, R-2, D-1 to D-6, E-01 to E-10), water_scarcity (place = A, B, C, D or E: the City of Windhoek water scarcity category), water_compliance (place = a number from 0 to 100: percent of the saving target that residents actually achieve). " +
       "Always tell the user that triggered faults, breaks and power events are simulations and not real events.",
     parameters: {
       type: "object",
