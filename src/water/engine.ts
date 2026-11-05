@@ -317,7 +317,7 @@ export class WaterSimulation {
         out += e.currentFlow;
       }
       n.outflowGPM = out;
-      n.inflowGPM = n.type === 'Reservoir' ? (this.feederOnline(id) ? out * fillFactor(hour, n.levelPct) : 0) : out;
+      n.inflowGPM = n.type === 'Reservoir' ? (this.feederOnline(id) ? out * fillFactor(hour, n.levelPct) * ((this as any).supplyFactor ?? 1) : 0) : out;
       return n.inflowGPM;
     };
     walk(this.rootId);

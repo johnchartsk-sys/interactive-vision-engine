@@ -5,7 +5,7 @@ import { useWaterSim } from './useWaterSim';
 import { CesiumPipelineViewer } from './CesiumPipelineViewer';
 import { AlertsPanel, AssetGrid, ConditionPanel, ConsumptionChart, GaugesPanel, Inspector, MaintenancePanel } from './panels';
 import { IncidentPopup, NiaWatchPanel } from './AgentPanel';
-import { runWaterCommand, startAgent, useAgent, waterSummary } from './agent'; import { AssumptionsPanel, ScarcityPanel } from './ScarcityPanel'; import { scarcitySummary } from './scarcity';
+import { runWaterCommand, startAgent, useAgent, waterSummary } from './agent'; import { AssumptionsPanel, ScarcityPanel } from './ScarcityPanel'; import { scarcitySummary } from './scarcity'; import { SupplyPanel } from './SupplyPanel'; import { supplySummary } from './supply';
 import { NiaChat } from '@/components/NiaChat';
 
 const SPEEDS: Array<[number, string]> = [[6, '1x'], [15, '2.5x'], [30, '5x']];
@@ -70,7 +70,7 @@ export function WaterDashboard() {
           <GaugesPanel kpi={snap.kpi} />
           <ConsumptionChart history={snap.history} />
           <ConditionPanel kpi={snap.kpi} />
-          <ScarcityPanel sim={sim} snap={snap} /><NiaWatchPanel onSelect={(id: string) => select(id, true)} />
+          <SupplyPanel sim={sim} snap={snap} /><ScarcityPanel sim={sim} snap={snap} /><NiaWatchPanel onSelect={(id: string) => select(id, true)} />
         </div>
 
         <div className="relative h-[62vh] min-h-[420px] overflow-hidden rounded-xl border border-cyan-500/30 xl:h-full">
@@ -98,7 +98,7 @@ export function WaterDashboard() {
         </div>
       </main>
 
-      {niaOpen && <NiaChat dashboard={(waterSummary(snap, ag.incidents).slice(0, 5600) + '\n' + scarcitySummary()).slice(0, 5990)} onClose={() => setNiaOpen(false)} onRecommendation={() => {}} />}
+      {niaOpen && <NiaChat dashboard={(waterSummary(snap, ag.incidents).slice(0, 5200) + '\n' + scarcitySummary() + '\n' + supplySummary()).slice(0, 5990)} onClose={() => setNiaOpen(false)} onRecommendation={() => {}} />}
     </div>
   );
 }

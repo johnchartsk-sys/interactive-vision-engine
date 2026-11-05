@@ -12,7 +12,7 @@ const emit = () => { state = { ...state }; subs.forEach((l) => l()); };
 export const targetSaving = (cat: string) => (CATEGORIES.find((c) => c.id === cat) || CATEGORIES[0]).target;
 export const targetFactor = (s = state) => 1 - targetSaving(s.category) * s.compliance;
 
-export function useScarcity() {
+export const getScarcityState = () => state; export function useScarcity() {
   return useSyncExternalStore((l) => { subs.add(l); return () => { subs.delete(l); }; }, () => state, () => state);
 }
 export function setCategory(id: string) {

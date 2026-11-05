@@ -367,7 +367,7 @@ export function acknowledge(id: string) {
 export function ackAll() {
   for (const inc of [...incidents]) if (inc.status === 'open') acknowledge(inc.id);
 }
-export function closePopup() { state.popupId = null; emit(); }
+export function closePopup() { state.popupId = null; emit(); } export function raiseIncident(o: any) { addAgentIncident(o); emit(); } export function resolveByKey(key: string, why: string) { const inc = incidents.find((i) => i.key === key && i.status !== 'resolved'); if (inc) { resolveInc(inc, why); emit(); } }
 
 // ---------- cross-asset event: power dip at a substation (simulated) ----------
 export function simulatePowerDip() {
