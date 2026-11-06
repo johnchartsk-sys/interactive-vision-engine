@@ -41,14 +41,14 @@ function buildControls(v: any) {
     '<div style="letter-spacing:1px;font-size:10px;opacity:.7;margin-bottom:4px">MAP LAYERS</div>' +
     '<label style="display:block;cursor:pointer"><input type="checkbox" data-k="lines"> Rail lines <span style="opacity:.7">(real)</span></label>' +
     '<label style="display:block;cursor:pointer"><input type="checkbox" data-k="trains"> Trains <span style="color:#fbbf24">(simulated)</span></label>' +
-    '<div style="margin-top:6px;font-size:10px;opacity:.8">Rail data \u00a9 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:#22d3ee">OpenStreetMap</a> contributors</div>';
+    '<div style="margin-top:6px;font-size:10px;opacity:.8">Rail data \u00a9 <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" style="color:#22d3ee">OpenStreetMap</a> contributors</div>' + '<button data-k="expand" style="margin-top:6px;width:100%;padding:3px 6px;border-radius:6px;border:1px solid rgba(34,211,238,0.6);background:rgba(34,211,238,0.12);color:#e6faff;cursor:pointer;font-size:11px">Expand map</button>';
   host.appendChild(panel);
   boxLines = panel.querySelector('input[data-k="lines"]');
   boxTrains = panel.querySelector('input[data-k="trains"]');
   boxLines.checked = lineShow;
   boxTrains.checked = trainShow;
   boxLines.addEventListener('change', () => { lineShow = boxLines.checked; applyLayers(); });
-  boxTrains.addEventListener('change', () => { trainShow = boxTrains.checked; applyLayers(); });
+  boxTrains.addEventListener('change', () => { trainShow = boxTrains.checked; applyLayers(); }); const ex = panel.querySelector('button[data-k="expand"]'); let expanded = false; const setExpanded = (on: boolean) => { expanded = on; host.style.position = on ? 'fixed' : 'absolute'; host.style.inset = on ? '12px' : '0'; host.style.zIndex = on ? '50' : ''; ex.textContent = on ? 'Close (Esc)' : 'Expand map'; setTimeout(() => window.dispatchEvent(new Event('resize')), 60); }; ex.addEventListener('click', () => setExpanded(!expanded)); document.addEventListener('keydown', (e: KeyboardEvent) => { if (e.key === 'Escape' && expanded) setExpanded(false); });
 }
 
 function drain() {

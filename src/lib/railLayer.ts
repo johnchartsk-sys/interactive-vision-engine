@@ -3,13 +3,71 @@ import { registerMap, setRailSource } from './mapBus';
 import { registerAsset } from './assetBus';
 import { enableAssetPicking } from './assetSelect';
 
-const OVERPASS = 'https://overpass-api.de/api/interpreter';
 // Railway lines in a box around Windhoek (south, west, north, east)
 const QUERY = '[out:json][timeout:25];way["railway"="rail"](-22.75,16.85,-22.45,17.30);out geom;';
+const MIRRORS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
+const CACHE_KEY = 'nia-rail-cache-v1';
 
 const TRAIN_COUNT = 3;
 // Sped up on purpose so movement is visible on screen. These trains are SIMULATED.
 const SPEED_MPS = 60;
+
+let memo: any = null;
+
+function setStatus(viewer: any, text: string) {
+  try {
+    const box = viewer.container.querySelector('.nia-map-controls');
+    if (!box) return;
+    let s = box.querySelector('.nia-rail-status');
+    if (!s) {
+      s = document.createElement('div');
+      s.className = 'nia-rail-status';
+      s.style.cssText = 'margin-top:4px;font-size:10px;color:#fbbf24';
+      box.appendChild(s);
+    }
+    s.textContent = text;
+  } catch { /* status is optional */ }
+}
+
+async function fetchJson(url: string, init: any, ms: number) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const res = await fetch(url, { ...init, signal: ctl.signal });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  } finally { clearTimeout(t); }
+}
+
+// Order: memory, local snapshot in /public, browser cache, then live OpenStreetMap (two mirrors).
+async function loadRail(status: (s: string) => void) {
+  if (memo) return { data: memo, from: 'memory' };
+  try {
+    const d = await fetchJson('/rail-windhoek.json', {}, 8000);
+    if (d && d.elements && d.elements.length) { memo = d; return { data: d, from: 'local snapshot' }; }
+  } catch { /* no snapshot file */ }
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (raw) {
+      const c = JSON.parse(raw);
+      if (c && c.data && Date.now() - c.at < 7 * 86400000) { memo = c.data; return { data: c.data, from: 'browser cache' }; }
+    }
+  } catch { /* cache is optional */ }
+  let last = '';
+  for (const url of MIRRORS) {
+    try {
+      status('Loading rail data from ' + new URL(url).host + '...');
+      const d = await fetchJson(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(QUERY) }, 25000);
+      if (d && d.elements && d.elements.length) {
+        memo = d;
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ at: Date.now(), data: d })); } catch { /* too large or blocked */ }
+        return { data: d, from: 'live OpenStreetMap' };
+      }
+      last = 'empty response';
+    } catch (e: any) { last = String((e && e.message) || e); }
+  }
+  throw new Error('Rail data unavailable (' + last + ')');
+}
 
 function buildTrack(Cesium: any, el: any) {
   const pts = el.geometry.map((p: any) => Cesium.Cartesian3.fromDegrees(p.lon, p.lat));
@@ -34,14 +92,9 @@ export async function addRailLayer(viewer: any) {
   if (!Cesium || !viewer) return;
   registerMap(viewer);
   enableAssetPicking(viewer);
+  setStatus(viewer, 'Loading rail data...');
   try {
-    const res = await fetch(OVERPASS, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'data=' + encodeURIComponent(QUERY),
-    });
-    if (!res.ok) throw new Error('Overpass returned ' + res.status);
-    const data = await res.json();
+    const { data, from } = await loadRail((t) => setStatus(viewer, t));
     if (viewer.isDestroyed && viewer.isDestroyed()) return;
 
     const source = new Cesium.CustomDataSource('rail');
@@ -149,7 +202,9 @@ export async function addRailLayer(viewer: any) {
 
     viewer.dataSources.add(source);
     setRailSource(source);
-  } catch (e) {
+    setStatus(viewer, 'Rail data: ' + from + ' (' + tracks.length + ' segments)');
+  } catch (e: any) {
     console.warn('Rail layer failed to load', e);
+    setStatus(viewer, String((e && e.message) || e));
   }
 }
