@@ -197,7 +197,7 @@ export class WaterSimulation {
         };
         e.status = this.statusOf(e);
         this.edges.set(p.id, e);
-        const list = this.children.get(p.from) ?? [];
+        if (p.normallyClosed) { (e as any).closed = true; (e as any).nc = true; continue; } const list = this.children.get(p.from) ?? [];
         list.push(e);
         this.children.set(p.from, list);
         this.parentEdge.set(p.to, e);
@@ -289,7 +289,7 @@ export class WaterSimulation {
 
   private updateBackgroundLeaks() {
     for (const e of this.edges.values()) {
-      if (e.status === 'broken') { e.leakGPM = e.breakLeakGPM * (0.92 + Math.random() * 0.16); continue; }
+      if ((e as any).closed) { e.leakGPM = 0; continue; } if (e.status === 'broken') { e.leakGPM = e.breakLeakGPM* (0.92 + Math.random() * 0.16); continue; }
       const base = Math.max(0, e.currentFlow - e.leakGPM);
       e.leakGPM = base * ((100 - e.condition) / 100) * 0.02;
     }

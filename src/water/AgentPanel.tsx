@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Radio } from 'lucide-react';
 import { Panel } from './panels';
 import { ALERT_EMAIL, ALERT_PHONE } from '@/lib/nia-comms';
-import { acknowledge, armReal, closePopup, disarm, escalationInfo, restorePower, setSetting, simulatePowerDip, useAgent } from './agent';
+import { executePlan, revertPlan, acknowledge, armReal, closePopup, disarm, escalationInfo, restorePower, setSetting, simulatePowerDip, useAgent } from './agent';
 
 const SEV = { critical: '#f87171', warning: '#fbbf24', info: '#22d3ee' };
 const cx = (...c) => c.filter(Boolean).join(' ');
@@ -138,7 +138,7 @@ export function IncidentPopup({ onSelect }) {
         {inc.log.length > 0 && <div className="max-h-20 overflow-y-auto font-mono text-[10px] text-slate-400">{inc.log.map((l, k) => <div key={k}>{l}</div>)}</div>}
         <div className="text-[10px] text-slate-500">SIMULATED network. Detection by rules, not a trained model.</div>
         <div className="flex flex-wrap gap-2 pt-1">
-          {inc.status === 'open' && <button className="rounded border border-emerald-400 bg-emerald-500/20 px-3 py-1 font-semibold text-emerald-200" onClick={() => acknowledge(inc.id)}>Acknowledge</button>}
+          {inc.status === 'open' && <button className="rounded border border-emerald-400 bg-emerald-500/20 px-3 py-1 font-semibold text-emerald-200" onClick={() => acknowledge(inc.id)}>Acknowledge</button>}{inc.plan && inc.plan.close.length > 0 && !inc.planExecuted && inc.status !== 'resolved' && <button className="rounded border border-amber-400 bg-amber-500/20 px-3 py-1 font-semibold text-amber-200" onClick={() => executePlan(inc.id)}>Execute isolation plan (simulated)</button>}{inc.planExecuted && inc.status !== 'resolved' && <button className="rounded border border-slate-400 px-3 py-1 text-slate-200" onClick={() => revertPlan(inc.id)}>Revert valves</button>}
           <button className="rounded border border-cyan-400 bg-cyan-500/15 px-3 py-1 text-cyan-200" onClick={() => { onSelect(inc.assetId); closePopup(); }}>Show on map</button>
           <button className="rounded border border-slate-500 px-3 py-1 text-slate-300" onClick={() => closePopup()}>Close</button>
         </div>

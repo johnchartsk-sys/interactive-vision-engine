@@ -11,10 +11,11 @@ const node = (id: string, name: string, nodeType: NodeProps['nodeType'], at: Lon
 const edge = (
   id: string, name: string, edgeType: EdgeProps['edgeType'], from: string, to: string,
   diameterMm: number, material: EdgeProps['material'], capacityGPM: number, condition: number, coordinates: LonLat[],
+  normallyClosed = false,
 ): EdgeFeature => ({
   type: 'Feature',
   geometry: { type: 'LineString', coordinates },
-  properties: { kind: 'edge', id, name, edgeType, from, to, diameterMm, material, capacityGPM, condition },
+  properties: { kind: 'edge', id, name, edgeType, from, to, diameterMm, material, capacityGPM, condition, ...(normallyClosed ? { normallyClosed: true } : {}) },
 });
 
 // Illustrative positions around Windhoek. NOT real utility assets.
@@ -56,5 +57,8 @@ export const NETWORK: NetworkCollection = {
     edge('E-08', 'Distribution Pipe E-08', 'Pipe', 'R-2', 'D-4', 250, 'HDPE', 300, 93, [R2, [17.119, -22.563], D4]),
     edge('E-09', 'Distribution Pipe E-09', 'Pipe', 'D-1', 'D-5', 200, 'PVC', 250, 78, [D1, [17.038, -22.568], D5]),
     edge('E-10', 'Distribution Pipe E-10', 'Pipe', 'D-2', 'D-6', 200, 'Ductile Iron', 250, 33, [D2, [17.078, -22.58], D6]),
+    // Emergency interconnects: normally closed (grey). Invented for this prototype.
+    edge('E-11', 'Emergency Interconnect E-11', 'Pipe', 'D-4', 'D-3', 200, 'HDPE', 300, 90, [D4, [17.115, -22.574], D3], true),
+    edge('E-12', 'Emergency Interconnect E-12', 'Pipe', 'D-5', 'D-2', 250, 'PVC', 350, 90, [D5, [17.05, -22.575], D2], true),
   ],
 };

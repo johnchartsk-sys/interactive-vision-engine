@@ -145,10 +145,10 @@ export function CesiumPipelineViewer({ sim, selectedId, onSelect, focus }: Props
             const st = sim.getEdge(id);
             if (!st) continue;
             const sel = selRef.current === id;
-            const key = st.status + (st.status === 'broken' ? (blink ? 'a' : 'b') : '') + (sel ? 's' : '');
+            const key = st.status + (st.status === 'broken' ? (blink ? 'a' : 'b') : '') + (sel ? 's' : '') + (st.closed ? 'c' : '');
             if (lastKey.get(id) === key) continue;
             lastKey.set(id, key);
-            const color = st.status === 'broken' ? (blink ? RED : DARKRED) : st.status === 'critical' ? ORANGE : st.status === 'poor' ? AMBER : CYAN;
+            const color = st.closed ? col('#94a3b8') : st.status === 'broken' ? (blink ? RED : DARKRED): st.status === 'critical' ? ORANGE : st.status === 'poor' ? AMBER : CYAN;
             const w = 3 + st.diameterMm / 110 + (sel ? 4 : 0);
             ent.polyline.material = color;
             ent.polyline.width = w;
@@ -170,11 +170,11 @@ export function CesiumPipelineViewer({ sim, selectedId, onSelect, focus }: Props
             const st = sim.getEdge(id);
             if (!st) continue;
             const lk = leakEnts.get(id);
-            if (lk) lk.show = st.status === 'broken';
-            if (flowKey.get(id) === st.status) continue;
+            if (lk) lk.show = st.status === 'broken' && !st.closed;
+            /* particle colours refresh every sync */
             flowKey.set(id, st.status);
             const c = st.status === 'broken' ? RED : st.status === 'critical' ? ORANGE : st.status === 'poor' ? AMBER : FLOW;
-            for (const e of list) e.point.color = c;
+            for (const e of list) { e.point.color = c; e.show = !st.closed; }
           }
         };
         timer = setInterval(sync, 500);

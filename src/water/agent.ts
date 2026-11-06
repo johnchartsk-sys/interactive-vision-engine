@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { useSyncExternalStore } from 'react';
 import { sendCommunication } from '@/lib/nia-comms.functions';
-import { ALERT_EMAIL, ALERT_PHONE } from '@/lib/nia-comms';
+import { ALERT_EMAIL, ALERT_PHONE } from '@/lib/nia-comms'; import { applyPlan, autoRestore, isolationPlan, restoreValves } from './isolation';
 
 const PSI_PER_M = 1.4223;
 const SURGE_PSI = 40;
@@ -192,7 +192,7 @@ function resolveInc(inc: any, why: string) {
   if (state.popupId === inc.id) state.popupId = nextPopup();
 }
 function upsert(a: any, s: any) {
-  const d = describe(a, s);
+  const d = describe(a, s); if (a.key.indexOf('break:') === 0) { const pl = isolationPlan(a.key.split(':')[1], s); if (pl) { d.plan = pl; d.advice = pl.advice.concat(d.advice.slice(1, 2)); } }
   let inc = incidents.find((i) => i.key === a.key && i.status !== 'resolved');
   if (!inc) {
     inc = {
@@ -326,7 +326,7 @@ function tick() {
   if (!sim) return;
   const now = Date.now();
   const t = timings();
-  let changed = false;
+  let changed = false; autoRestore(sim);
   for (const inc of incidents) {
     if (inc.status === 'resolved') continue;
     if (inc.autoResolveAt && now >= inc.autoResolveAt) { resolveInc(inc, 'Closed automatically: no further surge.'); changed = true; continue; }
@@ -367,7 +367,7 @@ export function acknowledge(id: string) {
 export function ackAll() {
   for (const inc of [...incidents]) if (inc.status === 'open') acknowledge(inc.id);
 }
-export function closePopup() { state.popupId = null; emit(); } export function raiseIncident(o: any) { addAgentIncident(o); emit(); } export function resolveByKey(key: string, why: string) { const inc = incidents.find((i) => i.key === key && i.status !== 'resolved'); if (inc) { resolveInc(inc, why); emit(); } }
+export function closePopup() { state.popupId = null; emit(); } export function executePlan(id: string) { const inc = incidents.find((i) => i.id === id); if (!inc || !inc.plan || !sim) return; applyPlan(sim, inc.plan); inc.planExecuted = true; note(inc, 'Isolation plan executed (simulated): close ' + inc.plan.close.join(', ') + (inc.plan.open.length ? ', open ' + inc.plan.open.join(', ') : '') + '.'); agentEvent('Valves operated for ' + inc.assetId + ' (simulated).'); emit(); } export function revertPlan(id: string) { const inc = incidents.find((i) => i.id === id); if (!inc || !sim) return; restoreValves(sim); inc.planExecuted = false; note(inc, 'Valves returned to normal (simulated).'); emit(); } export function raiseIncident(o: any) { addAgentIncident(o); emit(); } export function resolveByKey(key: string, why: string) { const inc = incidents.find((i) => i.key === key && i.status !== 'resolved'); if (inc) { resolveInc(inc, why); emit(); } }
 
 // ---------- cross-asset event: power dip at a substation (simulated) ----------
 export function simulatePowerDip() {

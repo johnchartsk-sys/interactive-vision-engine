@@ -28,7 +28,7 @@ export interface EdgeProps {
   diameterMm: number;
   material: PipeMaterial;
   capacityGPM: number;
-  condition: number; // initial 0-100
+  condition: number; normallyClosed?: boolean; // initial 0-100
 }
 
 export interface NodeFeature {
