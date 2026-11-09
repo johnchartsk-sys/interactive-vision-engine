@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NamTwin Rail 3D Twin (Simulated)</title>
+<style>
+:root{--bg:#031220;--pn:#07243a;--ln:#12435f;--tx:#e6f4ff;--mu:#82a6bb;--cy:#22d3ee;--ok:#22c55e;--wn:#fbbf24;--cr:#ef4444;color-scheme:dark}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--tx);font:13px/1.35 "Segoe UI",system-ui,sans-serif}
+#app{display:grid;grid-template-columns:280px 1fr 290px;grid-template-rows:46px 1fr 200px;height:100%;gap:8px;padding:0 8px 8px}
+header{grid-column:1/4;display:flex;align-items:center;gap:14px;margin:0 -8px;padding:0 16px;background:#02101c;border-bottom:1px solid var(--ln)}
+header b{font-size:16px;letter-spacing:.3px}header a{color:var(--cy);text-decoration:none;margin-left:auto}
+.tag{padding:2px 8px;border-radius:99px;background:#3b2a05;color:var(--wn);font-size:11px;border:1px solid #6b4a08}
+aside,.bt>div{background:var(--pn);border:1px solid var(--ln);border-radius:10px;padding:10px 12px;overflow:auto;min-height:0}
+h3{margin:0 0 8px;font-size:12px;font-weight:600;color:var(--cy)}
+.row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid #0d3550}.row span:first-child{color:var(--mu)}
+.ok{color:var(--ok)}.wn{color:var(--wn)}.cr{color:var(--cr)}
+#stage{position:relative;border-radius:10px;overflow:hidden;border:1px solid var(--ln);min-height:0}
+#cv{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#lbl{position:absolute;pointer-events:none;padding:4px 9px;border-radius:8px;background:#031220e6;border:1px solid var(--cy);font-size:12px;transform:translate(-50%,-130%);white-space:nowrap;display:none}
+#hint{position:absolute;left:10px;bottom:8px;color:#10202c;font-size:11px;background:#ffffffa8;padding:2px 8px;border-radius:6px}
+#hs{font-size:34px;font-weight:700}#hb{height:7px;background:#0d3550;border-radius:4px;overflow:hidden;margin:4px 0}#hb i{display:block;height:100%;transition:width .3s,background .3s}
+.c{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:6px;cursor:pointer}.c:hover,.c.sel{background:#0c3552}.c.sel{outline:1px solid var(--cy)}
+.d{width:10px;height:10px;border-radius:50%;background:var(--ok)}.d.w{background:var(--wn)}.d.k{background:var(--cr)}
+.bt{grid-column:1/4;display:grid;grid-template-columns:280px 1fr;gap:8px;min-height:0}
+button{font:inherit;color:var(--tx);background:#0c3552;border:1px solid var(--ln);border-radius:7px;padding:6px 10px;cursor:pointer;margin:0 6px 6px 0}
+button:hover{border-color:var(--cy)}button:focus-visible,.c:focus-visible{outline:2px solid var(--cy)}button.f{background:#b45309;border-color:#f59e0b}
+#log div{padding:3px 0;border-bottom:1px solid #0d3550;font-size:12px}
+@media(max-width:900px){html,body{height:auto}#app{display:block;height:auto}#stage{height:55vh;margin:8px 0}aside,.bt>div{margin-bottom:8px}.bt{display:block}}
+</style></head><body>
+<div id="app">
+<header><b>NamTwin Rail · 3D digital twin</b><span class="tag">SIMULATED · no real train data</span><span id="clk" style="color:var(--mu)"></span><a href="/">Back to command center</a></header>
+<aside>
+ <h3>Train details</h3>
+ <div class="row"><span>Train ID</span><span id="tid"></span></div>
+ <div class="row"><span>Type</span><span>Freight (simulated)</span></div>
+ <div class="row"><span>Consist</span><span>1 loco + 4 wagons</span></div>
+ <div class="row"><span>Direction</span><span>Northbound</span></div>
+ <h3 style="margin-top:12px">Train health</h3>
+ <div id="hs">100%</div><div id="hb"><i></i></div><div id="hst"></div>
+ <h3 style="margin-top:12px">Components (click to select)</h3><div id="cl"></div>
+</aside>
+<div id="stage"><canvas id="cv"></canvas><div id="lbl"></div><div id="hint">Drag to rotate · scroll to zoom · click a component</div></div>
+<aside>
+ <h3>Real-time monitoring</h3><div id="tel"></div>
+ <h3 style="margin-top:12px">Predictive maintenance</h3><div id="pm"></div>
+</aside>
+<div class="bt"><div><h3>Fault injection</h3><div id="fc"></div></div><div><h3>Alert log</h3><div id="log"></div></div></div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const q=new URLSearchParams(location.search).get('train');
+$('tid').textContent='SIM-LOCO-0'+(/^\d$/.test(q||'')?q:'2');
+setInterval(()=>$('clk').textContent=new Date().toLocaleTimeString(),1000);
+if(window.top!==window)document.querySelector('header a').style.display='none';
+
+// ---------- Component model ----------
+const C={
+ engine:{n:'Engine',w:22,f:[['overheat','Overheating'],['vib','Abnormal vibration'],['perf','Reduced performance']],r:'Cut load to 60%, inspect injectors and oil cooler.'},
+ cooling:{n:'Cooling system',w:14,f:[['hot','High coolant temperature'],['fail','Cooling failure']],r:'Flush radiator, check fan clutch and coolant pump before dispatch.'},
+ traction:{n:'Traction motor',w:16,f:[['temp','Temperature rise'],['deg','Performance degradation']],r:'Derate traction, inspect blower and run a winding insulation test.'},
+ bearing:{n:'Wheel bearings',w:16,f:[['vib','Abnormal vibration'],['temp','Rising bearing temperature']],r:'Stop at next siding, check axle-box grease, replace bearing if above 95 °C.'},
+ brake:{n:'Braking system',w:20,f:[['loss','Brake pressure loss'],['fault','Brake fault']],r:'Limit speed to 40 km/h, check air leaks, brake valve and cylinders.'},
+ fuel:{n:'Fuel system',w:8,f:[['low','Low fuel pressure']],r:'Check fuel filter, lift pump and lines before the next run.'},
+ coupler:{n:'Wagons & couplers',w:8,f:[['conn','Coupler connection alert'],['load','Load-distribution alert']],r:'Inspect coupler knuckle and draft gear, rebalance wagon loads.'}
+};
+const K=Object.keys(C),st={};K.forEach(k=>st[k]={f:null,s:0,t:0,l:0});
+const lvl=s=>s>.55?2:s>.15?1:0, v=(k,id)=>st[k].f===id?st[k].s:0;
+let sel=null,speed=78,dist=0;
+
+function tel(){const c=st.cooling,f=st.fuel,p=Math.max;
+ return{spd:speed,
+ pwr:p(15,100-v('engine','perf')*50-v('engine','overheat')*32-v('traction','deg')*38-f.s*28-c.s*15),
+ eng:84+v('engine','overheat')*52+c.s*(c.f=='fail'?30:16),
+ evib:.1+v('engine','vib')+v('bearing','vib')*.2,
+ cool:78+c.s*(c.f=='fail'?44:26),
+ tm:92+v('traction','temp')*68+v('traction','deg')*26,
+ brg:60+v('bearing','temp')*58+v('bearing','vib')*34,
+ bvib:.08+v('bearing','vib')*.9+v('bearing','temp')*.15,
+ brk:5.8-v('brake','loss')*3.6-v('brake','fault')*2.2,
+ fuel:4.2-f.s*2.7,
+ cpl:4+v('coupler','conn')*36+v('coupler','load')*30}}
+// key,label,unit,warn,crit,dir(1=high is bad,-1=low is bad),decimals
+const TR=[['spd','Speed','km/h',0,0,0,0],['pwr','Power output','%',75,50,-1,0],['eng','Engine temp','°C',100,120,1,0],['evib','Engine vibration','g',.4,.8,1,2],
+['cool','Coolant temp','°C',92,105,1,0],['tm','Traction motor temp','°C',120,145,1,0],['brg','Bearing temp','°C',80,100,1,0],['bvib','Bearing vibration','g',.35,.7,1,2],
+['brk','Brake pipe pressure','bar',4.8,3.8,-1,1],['fuel','Fuel pressure','bar',3.4,2.6,-1,1],['cpl','Coupler load imbalance','%',15,28,1,0]];
+const health=()=>Math.max(0,100-K.reduce((a,k)=>a+C[k].w*st[k].s,0));
+
+// ---------- Log ----------
+const LOG=[];let code=400;
+function log(l,m){LOG.unshift(`<div><span class="${l=='CRIT'?'cr':l=='WARN'?'wn':'ok'}">[${l}]</span> ${new Date().toLocaleTimeString()} · SIM-E${code++} · ${m}</div>`);if(LOG.length>40)LOG.pop();$('log').innerHTML=LOG.join('')}
+log('INFO','Simulation started. All components within limits (simulated).');
+
+// ---------- Fault control ----------
+function trig(k,id){const s=st[k];s.f=id;s.t=1;s.l=Math.min(s.l,lvl(s.s));const n=C[k].f.find(x=>x[0]==id)[1];log('ALERT',`${C[k].n}: fault injected, ${n.toLowerCase()} (simulated).`);drawFC()}
+function clr(k){st[k].t=0;drawFC()}
+function reset(){K.forEach(k=>st[k].t=0);log('INFO','All simulated faults cleared.');drawFC()}
+function drawFC(){const k=sel;if(!k){$('fc').innerHTML='<p style="color:var(--mu)">Select a component in the 3D view or the list, then inject a simulated fault.</p><button onclick="reset()">Clear all faults</button>';return}
+ $('fc').innerHTML=`<p style="margin:0 0 8px"><b>${C[k].n}</b>${C[k].nm?' <span style="color:var(--mu)">(no 3D part in this model, simulated only)</span>':''}</p>`+C[k].f.map(f=>`<button class="f${st[k].f==f[0]&&st[k].t?' on':''}" onclick="trig('${k}','${f[0]}')">${f[1]}</button>`).join('')+`<br><button onclick="clr('${k}')">Clear this fault</button><button onclick="reset()">Clear all faults</button>`}
+function select(k){sel=k;drawFC();drawCL()}
+function drawCL(){$('cl').innerHTML=K.map(k=>{const l=lvl(st[k].s);return`<div class="c${sel==k?' sel':''}" tabindex="0" onclick="select('${k}')" onkeydown="if(event.key=='Enter')select('${k}')"><i class="d ${l==2?'k':l==1?'w':''}"></i><span style="flex:1">${C[k].n}</span><span class="${l==2?'cr':l==1?'wn':'ok'}">${['OK','Warning','Critical'][l]}</span></div>`}).join('')}
+drawCL();drawFC();
+
+function ui(){const T=tel(),h=health(),hc=h>=85?'ok':h>=60?'wn':'cr';
+ $('hs').textContent=Math.round(h)+'%';$('hs').className=hc;$('hst').textContent=h>=85?'Operational':h>=60?'Degraded':'Critical';$('hst').className=hc;
+ const b=$('hb').firstChild;b.style.width=h+'%';b.style.background=`var(--${hc=='ok'?'ok':hc=='wn'?'wn':'cr'})`;
+ $('tel').innerHTML=TR.map(([k,n,u,w,c,d,p])=>{const x=T[k],bad=d==1?(x>=c?2:x>=w?1:0):d==-1?(x<=c?2:x<=w?1:0):0;return`<div class="row"><span>${n}</span><span class="${['','wn','cr'][bad]}">${x.toFixed(p)} ${u}</span></div>`}).join('');
+ const act=K.filter(k=>st[k].s>.05).sort((a,b)=>st[b].s-st[a].s);
+ const risk=Math.min(97,Math.round(4+K.reduce((a,k)=>a+st[k].s,0)*26));
+ $('pm').innerHTML=`<div class="row"><span>Predicted delay risk</span><span class="${risk>40?'cr':risk>15?'wn':'ok'}">${risk}%</span></div>`+(act.length?act.slice(0,3).map(k=>`<p style="margin:8px 0 0"><b>${C[k].n}</b>: about ${Math.max(1,Math.round(120*Math.pow(1-st[k].s,2)))} h to service<br><span style="color:var(--mu)">${C[k].r}</span></p>`).join(''):'<p style="color:var(--mu);margin:8px 0 0">No faults. Next routine inspection in about 120 h.</p>');
+ drawCL()}
+
+// ---------- 3D scene ----------
+const cv=$('cv'),R=new THREE.WebGLRenderer({canvas:cv,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));R.shadowMap.enabled=true;
+const S=new THREE.Scene();S.background=new THREE.Color(0x9ec3dc);S.fog=new THREE.Fog(0x9ec3dc,90,280);
+const cam=new THREE.PerspectiveCamera(42,1,.1,600);
+S.add(new THREE.HemisphereLight(0xffffff,0x8a6a40,.9));
+const sun=new THREE.DirectionalLight(0xfff0d0,1.1);sun.position.set(0,55,30);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);
+Object.assign(sun.shadow.camera,{left:-75,right:75,top:40,bottom:-40});sun.target.position.set(-30,0,0);S.add(sun,sun.target);
+const M=(c,o)=>new THREE.MeshStandardMaterial(Object.assign({color:c,roughness:.6,metalness:.25},o));
+const B=(w,h,d)=>new THREE.BoxGeometry(w,h,d),CY=(r,l,s=20)=>new THREE.CylinderGeometry(r,r,l,s);
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(900,900),M(0xc9a06a,{metalness:0}));gnd.rotation.x=-Math.PI/2;gnd.position.y=-.02;gnd.receiveShadow=true;S.add(gnd);
+const bal=new THREE.Mesh(B(600,.22,4.4),M(0x7a7268,{metalness:0}));bal.position.y=.05;bal.receiveShadow=true;S.add(bal);
+[-.85,.85].forEach(z=>{const r=new THREE.Mesh(B(600,.16,.12),M(0xb5bcc4,{metalness:.8}));r.position.set(0,.2,z);S.add(r)});
+for(let i=0;i<9;i++){const h=new THREE.Mesh(new THREE.ConeGeometry(34+i*3,26+(i%3)*10,5),M(0x7d6a55,{metalness:0}));h.position.set(-220+i*55,10,(i%2?1:-1)*(170+i*6));S.add(h)}
+const P=264,SL=new THREE.InstancedMesh(B(.35,.12,2.8),M(0x4a3a2c),220),SH=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1,0),M(0x6d7a4a,{metalness:0}),70),dm=new THREE.Object3D();
+S.add(SL,SH);const shr=[];for(let i=0;i<70;i++){const a=(i*97%P),z=(i%2?1:-1)*(5+(i*37%26)),s=.4+(i*13%12)/10;shr.push([a,z,s])}
+function scroll(){for(let i=0;i<220;i++){dm.position.set(((i*1.2-dist)%P+P)%P-P/2,.25,0);dm.scale.set(1,1,1);dm.updateMatrix();SL.setMatrixAt(i,dm.matrix)}
+ shr.forEach(([a,z,s],i)=>{dm.position.set(((a-dist)%P+P)%P-P/2,s*.5,z);dm.scale.set(s*1.3,s*.7,s);dm.updateMatrix();SH.setMatrixAt(i,dm.matrix)});SL.instanceMatrix.needsUpdate=SH.instanceMatrix.needsUpdate=true}
+
+const T=new THREE.Group();S.add(T);const parts={},pick=[],spin=[];K.forEach(k=>parts[k]=[]);
+function mk(g,col,comp,x,y,z,o){const m=new THREE.Mesh(g,M(col,o));m.position.set(x,y,z);m.castShadow=m.receiveShadow=true;T.add(m);if(comp){m.userData.c=comp;parts[comp].push(m);pick.push(m)}return m}
+function wheel(x,y,z,r,comp){const g=new THREE.Group();g.position.set(x,y,z);const d=new THREE.Mesh(CY(r,.18,24),M(0x30343c,{metalness:.7}));d.rotation.x=Math.PI/2;d.castShadow=true;g.add(d);
+ const sp=new THREE.Mesh(B(r*1.7,.07,.22),M(0x9aa3ad));sp.position.z=z>0?.1:-.1;g.add(sp);T.add(g);spin.push([g,r]);if(comp){d.userData.c=comp;parts[comp].push(d);pick.push(d)}}
+// couplers (rear joint first so camera focus lands between loco and wagon 1)
+mk(B(1.6,.3,.4),0x1c1f24,'coupler',-10.6,1.35,0);mk(B(1.4,.3,.4),0x1c1f24,'coupler',10.7,1.35,0);
+// locomotive body
+mk(B(20,.8,3),0x2b2f36,0,0,1.5,0);
+mk(B(13,2.2,2.8),0xc8261f,'engine',-3,3,0);
+mk(CY(.28,1.3),0x25282d,'engine',-6,4.7,0);
+mk(B(5,3.2,3),0xc8261f,0,6,3.5,0);mk(B(1.5,1.6,2.8),0xc8261f,0,9.25,2.7,0);
+mk(B(20.05,.45,3.06),0xf2b705,0,0,2.35,0,{roughness:.5});
+mk(B(.1,1.1,2.4),0x10243a,0,8.55,4.2,0,{metalness:.9,roughness:.1});[-1,1].forEach(z=>mk(B(2.4,1,.1),0x10243a,0,6,4.2,z*1.52,{metalness:.9,roughness:.1}));
+mk(B(3.5,.5,2.4),0x2d333b,'cooling',-8,4.35,0);
+const fan=new THREE.Group();fan.position.set(-8,4.75,0);T.add(fan);[0,Math.PI/2].forEach(a=>{const b=new THREE.Mesh(B(1.9,.05,.28),M(0x9aa3ad));b.rotation.y=a;fan.add(b);b.userData.c='cooling';parts.cooling.push(b);pick.push(b)});
+const tank=mk(CY(.6,6),0xd9a23a,'fuel',0,.85,0);tank.rotation.z=Math.PI/2;
+const res=mk(CY(.28,4.5),0x9aa3ad,'brake',-1,1.15,1.75);res.rotation.z=Math.PI/2;
+[-6.2,6.2].forEach(bx=>{[-1.2,1.2].forEach(ax=>{const x=bx+ax;[-.85,.85].forEach(z=>{wheel(x,.55,z,.55,'bearing');mk(B(.5,.5,.35),0xb8bcc4,'bearing',x,.62,z*1.35)});
+ mk(B(.9,.8,1.1),0xe8742a,'traction',x,.98,0)});
+ const bc=mk(CY(.22,1.5),0x9aa3ad,'brake',bx,.95,0);bc.rotation.x=Math.PI/2});
+// wagons
+const WC=[0x1f5fa8,0xd9731f,0x7a4a2b,0x1f8a8a];
+for(let i=0;i<4;i++){const x=-18.2-i*15.2;mk(B(14,.35,2.8),0x2b2f36,0,x,1.3,0);mk(B(13,2.7,2.6),WC[i],'coupler',x,2.83,0,{roughness:.7});
+ [-5.2,-3.8,3.8,5.2].forEach(a=>[-.85,.85].forEach(z=>wheel(x+a,.45,z,.45)));
+ if(i<3)mk(B(1.6,.3,.4),0x1c1f24,'coupler',x-7.6,1.35,0)}
+
+// ---------- Optional real model (GLB) ----------
+// Loads rail-model.glb (or ?model=file.glb; add &zup=1 for Z-up exports). Parts are matched by node name,
+// e.g. Engine_Clickable, Brake_Cylinder_Clickable. Without a model file the built-in train is used.
+const MAP=[[/engine|diesel/i,'engine'],[/cool|radiator|fan/i,'cooling'],[/traction|motor/i,'traction'],[/bearing|axle/i,'bearing'],[/brake/i,'brake'],[/fuel|tank/i,'fuel'],[/coupl|load|container/i,'coupler']];
+const qp=new URLSearchParams(location.search);
+new THREE.GLTFLoader().load(qp.get('model')||'rail-model.glb',g=>{
+ const m=g.scene,G=new THREE.Group();if(qp.get('zup')==='1')m.rotation.x=-Math.PI/2;G.add(m);S.add(G);
+ let b=new THREE.Box3().setFromObject(G),z=b.getSize(new THREE.Vector3());G.scale.setScalar(60/Math.max(z.x,z.y,z.z,.01));
+ b=new THREE.Box3().setFromObject(G);const c=b.getCenter(new THREE.Vector3());G.position.set(-10-c.x,-b.min.y,-c.z);
+ T.visible=false;spin.length=0;pick.length=0;K.forEach(k=>parts[k].length=0);
+ m.traverse(o=>{if(!o.isMesh)return;if(/^track/i.test(o.name)){o.visible=false;return}o.castShadow=o.receiveShadow=true;
+  const h=MAP.find(x=>x[0].test(o.name));if(h){o.material=o.material.clone();o.userData.c=h[1];parts[h[1]].push(o);pick.push(o)}});
+ K.forEach(k=>{C[k].nm=!parts[k].length});drawFC();log('INFO','3D model loaded. Parts matched by name.');
+},undefined,()=>{});
+
+// ---------- Camera ----------
+let th=-.6,ph=1.25,rad=48;const tgt=new THREE.Vector3(-10,2.5,0),tw=new THREE.Vector3(),ray=new THREE.Raycaster(),mo=new THREE.Vector2();let drag=null,moved=0;
+cv.onpointerdown=e=>{drag=[e.clientX,e.clientY];moved=0;cv.setPointerCapture(e.pointerId);cv.style.cursor='grabbing'};
+cv.onpointermove=e=>{if(!drag)return;const dx=e.clientX-drag[0],dy=e.clientY-drag[1];moved+=Math.abs(dx)+Math.abs(dy);th-=dx*.006;ph=Math.min(1.5,Math.max(.25,ph-dy*.005));drag=[e.clientX,e.clientY]};
+cv.onpointerup=e=>{drag=null;cv.style.cursor='grab';if(moved<5){const r=cv.getBoundingClientRect();mo.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1);ray.setFromCamera(mo,cam);const h=ray.intersectObjects(pick,false)[0];select(h?h.object.userData.c:null)}};
+cv.onwheel=e=>{e.preventDefault();rad=Math.min(110,Math.max(10,rad*(1+e.deltaY*.001)))};
+function size(){const w=cv.clientWidth,h=cv.clientHeight;R.setSize(w,h,false);cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',size);size();
+
+// ---------- Main loop ----------
+let last=performance.now(),acc=0;const lbl=$('lbl'),RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;
+ K.forEach(k=>{const s=st[k];s.s=s.s<s.t?Math.min(s.t,s.s+dt*.2):Math.max(s.t,s.s-dt*.3);const l=lvl(s.s);
+  if(l>s.l){const n=C[k].f.find(x=>x[0]==s.f)[1];log(l==2?'CRIT':'WARN',`${C[k].n}: ${n.toLowerCase()} ${l==2?'passed critical threshold':'above normal range'}. Train health ${Math.round(health())}%.`);drawFC()}
+  if(l<s.l&&l==0&&s.t==0){log('INFO',`${C[k].n}: back within limits (simulated).`)}
+  s.l=l;if(s.s<.01&&s.t==0)s.f=null});
+ const T2=tel(),lim=78*Math.max(.3,1-.5*st.brake.s-.3*st.engine.s-.25*st.cooling.s-.2*st.traction.s-.3*st.fuel.s-.15*st.bearing.s-.1*st.coupler.s);
+ speed+=(lim-speed)*Math.min(1,dt*.6);dist+=speed/3.6*dt;
+ spin.forEach(([g,r])=>g.rotation.z=-dist/r);fan.rotation.y+=dt*18*(1-.9*(st.cooling.f=='fail'?st.cooling.s:0));
+ const sh=Math.max(0,Math.max(T2.evib,T2.bvib)-.25);T.position.y=RM?0:Math.sin(now*.08)*.05*sh;T.position.z=RM?0:Math.cos(now*.11)*.03*sh;
+ scroll();
+ K.forEach(k=>{const l=lvl(st[k].s),on=l>0||sel==k,col=l==2?0xef4444:l==1?0xfbbf24:0x22d3ee,p=l>0?.4+.3*Math.sin(now*(l==2?.009:.005)):.3;parts[k].forEach(m=>{m.material.emissive.setHex(on?col:0);m.material.emissiveIntensity=on?p:0})});
+ if(sel&&parts[sel][0]){parts[sel][0].getWorldPosition(tw)}else tw.set(-10,2.5,0);tgt.lerp(tw,.07);
+ cam.position.set(tgt.x+rad*Math.sin(ph)*Math.cos(th),tgt.y+rad*Math.cos(ph),tgt.z+rad*Math.sin(ph)*Math.sin(th));cam.lookAt(tgt);R.render(S,cam);
+ if(sel){const p=tw.clone().project(cam),l=lvl(st[sel].s);lbl.style.display='block';lbl.style.left=(p.x+1)/2*cv.clientWidth+'px';lbl.style.top=(1-p.y)/2*cv.clientHeight+'px';
+  lbl.innerHTML=`<b>${C[sel].n}</b> · <span class="${['ok','wn','cr'][l]}">${['Healthy','Warning','Critical'][l]}</span>`}else lbl.style.display='none';
+ acc+=dt;if(acc>.2){acc=0;ui()}
+ requestAnimationFrame(loop)}
+requestAnimationFrame(loop);
+</script></body></html>

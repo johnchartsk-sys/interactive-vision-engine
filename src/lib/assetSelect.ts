@@ -2,7 +2,7 @@
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { selectAsset, getAsset, getSelectedId, subscribe } from './assetBus';
-import { resetFaults } from './faultSim';
+import { resetFaults } from './faultSim'; import { openTrainTwin } from './trainTwin';
 import { AssetPanel } from '../components/AssetPanel';
 import { SimSandbox } from '../components/SimSandbox'; import { WeatherCard } from '../components/WeatherCard';
 
@@ -64,7 +64,7 @@ export function enableAssetPicking(viewer: any) {
       if (e && e.id && getAsset(e.id)) { ent = e; break; }
     }
     unhighlight();
-    if (ent) { highlight(ent); selectAsset(ent.id); } else { selectAsset(null); }
+    if (ent) { highlight(ent); selectAsset(ent.id); if (String(ent.id).indexOf('SIM-LOCO-') === 0) openTrainTwin(ent.id, viewer); } else { selectAsset(null); }
   }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 
   handler.setInputAction((move: any) => {
