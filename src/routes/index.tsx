@@ -6,7 +6,7 @@ import { InfrastructurePanel, type Sector } from '@/components/InfrastructurePan
 import { Sparkline, NamibiaNetwork } from '@/components/CommandGraphics';
 import { NiaHologram } from '@/components/NiaHologram';
 import { CesiumTwin } from '@/components/CesiumTwin';
-import { SectorDetail } from '@/components/SectorDetail'; import { AssetPanel } from '@/components/AssetPanel'; import { runMapCommand } from '@/lib/mapBus';
+import { SectorDetail } from '@/components/SectorDetail'; import { openPage } from '@/lib/pageOverlay'; import { AssetPanel } from '@/components/AssetPanel'; import { runMapCommand } from '@/lib/mapBus';
 import { addRailLayer } from '@/lib/railLayer';
 import { NiaChat } from '@/components/NiaChat';
 import water from '@/assets/water.jpg.asset.json';
@@ -35,7 +35,7 @@ function CommandCenter(){
  const [autoRotate,setAutoRotate]=useState(false);const [wireframe,setWireframe]=useState(false);const [resetKey,setResetKey]=useState(0);
  const [scenario,setScenario]=useState('Peak Demand + Power Outage');const [simState,setSimState]=useState<'idle'|'running'|'complete'>('idle');
  const [events,setEvents]=useState(initialEvents);const [niaOpen,setNiaOpen]=useState(false);const [stage,setStage]=useState<'core'|'map'>('core');const [activeSector,setActiveSector]=useState<string|null>(null);useEffect(()=>{const h=()=>setStage('map');window.addEventListener('nia-open-map',h);return()=>window.removeEventListener('nia-open-map',h)},[]);const [twin,setTwin]=useState('3D Twin');
- const open=(name:string,category='National infrastructure intelligence')=>{if(String(name).toUpperCase()==='WATER'){window.location.assign('/water');return}setDetail({name,category});setFeedback('');setNotes('')};
+ const open=(name:string,category='National infrastructure intelligence')=>{if(['NAMHEALTH','Hospitals','Clinics','Medical Equipment','Health Facilities'].indexOf(name)>=0){openPage('/namhealth-connect.html','NamHealth Connect','DEMONSTRATION with fictional patients. Not connected to any health system. Never enter real patient information.');return;}if(String(name).toUpperCase()==='WATER'){window.location.assign('/water');return}setDetail({name,category});setFeedback('');setNotes('')};
  useEffect(()=>{if(!detail)return;const key=(e:KeyboardEvent)=>{if(e.key==='Escape')setDetail(null)};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key)},[detail]);
  useEffect(()=>{if(simState!=='running')return;const timer=setTimeout(()=>{setSimState('complete');setEvents(prev=>{const next: [string,string][]=[['Now',`Simulation complete - ${scenario}`],...prev];return next.slice(0,6)})},1800);return()=>clearTimeout(timer)},[simState,scenario]);
  const logAction=(message:string)=>{setFeedback(message);setEvents(prev=>{const next: [string,string][]=[['Now',message],...prev];return next.slice(0,6)})};
