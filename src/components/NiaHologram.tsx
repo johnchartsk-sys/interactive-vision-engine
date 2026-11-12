@@ -2,10 +2,10 @@ import { createElement, Suspense, useEffect, useMemo, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Environment, Lightformer, OrbitControls, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
-import niaAsset from '@/assets/nia-identity.png.asset.json';
+import niaAsset from '@/assets/nia-identity.png';
 
 function NiaPortrait({ wireframe, cyan }: { wireframe: boolean; cyan: string }) {
- const texture = useTexture(niaAsset.url, t => { t.colorSpace = THREE.SRGBColorSpace; });
+ const texture = useTexture(niaAsset, t => { t.colorSpace = THREE.SRGBColorSpace; });
  // Preserve the actual reference pixels on a shallow curved relief. A single
  // frontal image cannot define an accurate unseen profile or back of the head.
  const geometry = useMemo(() => {
